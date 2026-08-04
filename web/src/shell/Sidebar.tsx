@@ -31,6 +31,7 @@ import {
   GitBranchIcon,
   InboxIcon,
   ListChecksIcon,
+  ListFilterIcon,
   LaptopIcon,
   Loader2Icon,
   MailIcon,
@@ -92,6 +93,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -122,7 +126,6 @@ import {
 } from "@/hooks/useConversations";
 import { useHosts, type Host } from "@/hooks/useHosts";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useServerInfo } from "@/lib/CapabilitiesContext";
 import { isSingleUserMode, sandboxOptionLabel } from "@/lib/capabilities";
 import { relativeTime } from "@/lib/relativeTime";
@@ -170,10 +173,11 @@ import {
 } from "./sidebarNav";
 
 // Positioning for a row's trailing session-state badge. On desktop the badge
-// fades out on hover/focus so the pin + kebab controls can take its place; on
+// fades out on hover/focus so the pin + kebab controls can take its place, and
+// shares their right-1 edge so the two line up as one trailing column; on
 // mobile it sits left of the always-visible controls (right-[4.5rem]).
 const SESSION_STATE_SLOT_CLASS =
-  "-translate-y-1/2 pointer-events-none absolute top-1/2 right-[4.5rem] flex h-5 items-center transition-opacity md:right-2 md:group-hover:opacity-0 md:group-has-[:focus-visible]:opacity-0 md:group-has-[[aria-expanded=true]]:opacity-0";
+  "-translate-y-1/2 pointer-events-none absolute top-1/2 right-[4.5rem] flex h-5 items-center transition-opacity md:right-1 md:group-hover:opacity-0 md:group-has-[:focus-visible]:opacity-0 md:group-has-[[aria-expanded=true]]:opacity-0";
 
 // Highlight applied to a drop target while a draggable session hovers it: a
 // subtle background tint — no border, no shadow. Keyed on --primary like the
@@ -218,12 +222,21 @@ function SidebarRowDataProvider({
 }
 
 /**
- * Which session tab the sidebar is showing. ``"mine"`` is the viewer's own
- * sessions (the Pinned / Projects / Chats structure); ``"shared"`` is the flat
- * list of sessions others have shared with the viewer. The split mirrors
- * :func:`isOwnedByViewer`.
+ * Which slice of sessions the sidebar is showing, picked from the Sessions
+ * heading's filter menu. ``"all"`` is everything the viewer can see;
+ * ``"mine"``/``"shared"`` split it by ownership (mirroring
+ * :func:`isOwnedByViewer`); ``"archived"`` shows only archived sessions, which
+ * every other option hides.
  */
-type SidebarTab = "mine" | "shared";
+type SidebarTab = "all" | "mine" | "shared" | "archived";
+
+/** Filter menu options, in the order the design lists them. */
+const SIDEBAR_FILTERS: { value: SidebarTab; label: string }[] = [
+  { value: "all", label: "All sessions" },
+  { value: "mine", label: "My sessions" },
+  { value: "shared", label: "Shared sessions" },
+  { value: "archived", label: "Archived sessions" },
+];
 
 // Bulk-selection targets either the flat "Sessions" list or the sessions
 // nested inside project folders; the active scope decides which rows show
@@ -433,12 +446,12 @@ export function Sidebar({ open, onClose, dragProgress = null, onOpenSearch }: Si
   // Which session tab is shown. "mine" (default) keeps the full Pinned /
   // Projects / Chats structure; "shared" is a flat list of sessions others
   // shared with the viewer.
-  const [activeTab, setActiveTab] = useState<SidebarTab>("mine");
-  // The "Shared with me" tab only makes sense when sessions can be shared with
-  // other people at all — i.e. a multi-user server. A loopback-only local
-  // server has just the one user (mirrors the disabled Share affordance; see
-  // `isCurrentServerLocal` and AppShell's `shareDisabled`), so hide the tabs
-  // and always show the viewer's own sessions there.
+  const [activeTab, setActiveTab] = useState<SidebarTab>("all");
+  // "Shared sessions" only makes sense when sessions can be shared with other
+  // people at all — i.e. a multi-user server. A loopback-only local server has
+  // just the one user (mirrors the disabled Share affordance; see
+  // `isCurrentServerLocal` and AppShell's `shareDisabled`), so drop that one
+  // filter option there.
   const multiUser = !isCurrentServerLocal();
 
   const lastSelectedIdRef = useRef<string | null>(null);
@@ -846,37 +859,9 @@ export function Sidebar({ open, onClose, dragProgress = null, onOpenSearch }: Si
             </Button>
           </div>
 
-          {/* Session-scope tabs: split the viewer's own sessions ("My
-          sessions") from ones shared with them ("Shared with me"). Sits above
-          the scrolling list (non-scrolling) so it stays put while the list
-          scrolls. Stays visible during selection mode so the viewer can still
-          switch scopes while bulk-selecting. */}
-          {multiUser && (
-            <div className="px-2 pb-2">
-              <Tabs
-                value={activeTab}
-                onValueChange={(v) => switchTab(v as SidebarTab)}
-                className="w-full"
-              >
-                <TabsList className="w-full">
-                  <TabsTrigger
-                    value="mine"
-                    data-testid="sidebar-tab-mine"
-                    className="sidebar-compact-text min-w-0 font-normal hover:bg-[var(--sidebar-hover)] data-active:bg-[var(--sidebar-active)] data-active:text-[var(--sidebar-active-foreground)] data-active:shadow-none"
-                  >
-                    <span className="min-w-0 truncate">My sessions</span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="shared"
-                    data-testid="sidebar-tab-shared"
-                    className="sidebar-compact-text min-w-0 font-normal hover:bg-[var(--sidebar-hover)] data-active:bg-[var(--sidebar-active)] data-active:text-[var(--sidebar-active-foreground)] data-active:shadow-none"
-                  >
-                    <span className="min-w-0 truncate">Shared with me</span>
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          )}
+          {/* The session-scope tabs ("My sessions" / "Shared with me") are gone —
+          scope now lives in the Sessions heading's filter menu (see
+          SessionFilterMenu), which also covers All and Archived. */}
 
           <nav
             ref={scrollContainerRef}
@@ -889,7 +874,12 @@ export function Sidebar({ open, onClose, dragProgress = null, onOpenSearch }: Si
               scrollContainerRef={scrollContainerRef}
               onRowClick={onNavClick}
               searchQuery=""
+              // A single-user server can't have shared sessions, so pin the
+              // scope to the viewer's own list there — "All" would otherwise
+              // surface a foreign-owned row the viewer can't have received.
               activeTab={multiUser ? activeTab : "mine"}
+              onActiveTabChange={switchTab}
+              multiUser={multiUser}
               pinnedConversationIds={pinnedConversationIds}
               pinnedConversations={pinnedConversations}
               onTogglePinned={togglePinnedConversation}
@@ -1123,6 +1113,10 @@ interface ConversationListProps {
   onRowClick: (e: MouseEvent<HTMLAnchorElement>) => void;
   searchQuery: string;
   activeTab: SidebarTab;
+  /** Switches the active filter from the Sessions heading's filter menu. */
+  onActiveTabChange: (tab: SidebarTab) => void;
+  /** Whether the server has more than one user; gates the "Shared" filter. */
+  multiUser: boolean;
   pinnedConversationIds: string[];
   // The server-authoritative pinned sessions, so a pinned session that sits
   // outside the loaded pagination window still renders in the Pinned section.
@@ -1188,6 +1182,8 @@ function ConversationList({
   onRowClick,
   searchQuery,
   activeTab,
+  onActiveTabChange,
+  multiUser,
   pinnedConversationIds,
   pinnedConversations,
   onTogglePinned,
@@ -1278,14 +1274,18 @@ function ConversationList({
     // also present in the paginated list, and merging both would render it twice.
     const allWithPinned = dedupeConversationsById([...allConversations, ...pinnedConversations]);
     const notArchived = allWithPinned.filter((c) => c.archived !== true);
-    // Each tab shows a disjoint slice — "mine" is the sessions the viewer owns,
-    // "shared" is the ones others shared with them. The Pinned / Projects /
-    // Sessions structure is then built from that slice, so both tabs reuse the
-    // same section layout with different conversations.
+    // The active filter picks the slice; the Pinned / Projects / Sessions
+    // structure is then built from it, so every filter reuses the same section
+    // layout with different conversations. "archived" is the only filter that
+    // shows archived sessions — the rest hide them.
     const tabScoped =
-      activeTab === "shared"
-        ? notArchived.filter((c) => !isOwnedByViewer(c, viewerId))
-        : notArchived.filter((c) => isOwnedByViewer(c, viewerId));
+      activeTab === "archived"
+        ? allWithPinned.filter((c) => c.archived === true)
+        : activeTab === "shared"
+          ? notArchived.filter((c) => !isOwnedByViewer(c, viewerId))
+          : activeTab === "mine"
+            ? notArchived.filter((c) => isOwnedByViewer(c, viewerId))
+            : notArchived;
 
     // Pinned takes precedence over Project: pinning a session moves it OUT of
     // its project into the flat global Pinned section (no nested pins). Ordered
@@ -1297,14 +1297,15 @@ function ConversationList({
     const pinned = orderByPinnedTimestamp(tabScoped.filter((c) => pinnedSet.has(c.id)));
     const pinnedIdSet = new Set(pinned.map((c) => c.id));
 
-    // Projects are a "My sessions"-only tool (filing into a project is
-    // owner-only), so the Shared tab renders no folders. On "mine" each folder
-    // holds its non-pinned, non-archived sessions; a pinned member is excluded
-    // (it lives under Pinned), so pinning a project's last session leaves the
-    // folder showing "No sessions".
+    // Filing into a project is owner-only, so the Shared filter renders no
+    // folders; Archived shows a flat list too (an archived session reads as
+    // archived first, not as a project member). Otherwise each folder holds its
+    // non-pinned sessions; a pinned member is excluded (it lives under Pinned),
+    // so pinning a project's last session leaves the folder showing "No
+    // sessions".
     const filedIds = new Set<string>();
     const projectGroups: { id: string | null; name: string; conversations: Conversation[] }[] =
-      activeTab === "shared"
+      activeTab === "shared" || activeTab === "archived"
         ? []
         : projects.map(({ id, name }) => {
             // Dual-read membership: a session belongs to this folder if it has
@@ -1327,18 +1328,13 @@ function ConversationList({
     // unloaded page. We render it as a folder with a "No sessions" placeholder
     // rather than hiding it (matches the target sidebar layout).
 
-    // Sessions: the remainder of the tab's slice — not pinned, not filed.
+    // Sessions: the remainder of the filter's slice — not pinned, not filed.
     const sessions = sortByUpdatedAtDesc(
       tabScoped.filter((c) => !pinnedIdSet.has(c.id) && !filedIds.has(c.id)),
       activeOverride,
       frozenKeys,
     );
-    const archived = sortByUpdatedAtDesc(
-      allWithPinned.filter((c) => c.archived === true),
-      activeOverride,
-      frozenKeys,
-    );
-    return { pinned, sessions, archived, projectGroups };
+    return { pinned, sessions, projectGroups };
   }, [
     allConversations,
     pinnedConversations,
@@ -1544,6 +1540,17 @@ function ConversationList({
       return target;
     });
   }, [expandedViaButton, revertSnapshot]);
+  // "Collapse all" closes every folder outright — distinct from "Collapse to
+  // previous", which restores whatever was open before "Expand all". Offered
+  // whenever at least one folder is open, so a mixed set can be closed in one
+  // go without first expanding everything.
+  const collapseAllProjects = useCallback(() => {
+    setExpandedProjects(() => {
+      setExpandedViaButton(false);
+      writeExpandedProjectSections([]);
+      return [];
+    });
+  }, []);
 
   // Sessions each expanded ProjectFolder has actually rendered, keyed by
   // project name. A folder paginates independently of the global window, so its
@@ -1821,6 +1828,7 @@ function ConversationList({
                           )}
                           onExpandAll={expandAllProjects}
                           onRevert={revertProjects}
+                          onCollapseAll={collapseAllProjects}
                           onProjectCreated={expandProject}
                           onEnterSelectionMode={() => onEnterSelectionMode("projects")}
                         />
@@ -1892,26 +1900,37 @@ function ConversationList({
                         ) : undefined
                       }
                       headerAction={
-                        !selectionMode ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-xs"
-                                aria-label="Select sessions"
-                                data-testid="toggle-selection-mode"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  onEnterSelectionMode("sessions");
-                                }}
-                              >
-                                <ListChecksIcon className="size-3.5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom">Select sessions</TooltipContent>
-                          </Tooltip>
-                        ) : undefined
+                        // The filter stays reachable while bulk-selecting (the
+                        // tab strip it replaced did too, and switching scope
+                        // just exits selection); only the "select" entry point
+                        // hides, since selection is already on.
+                        <div className="flex items-center gap-0.5">
+                          {!selectionMode && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  aria-label="Select sessions"
+                                  data-testid="toggle-selection-mode"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onEnterSelectionMode("sessions");
+                                  }}
+                                >
+                                  <ListChecksIcon className="size-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom">Select sessions</TooltipContent>
+                            </Tooltip>
+                          )}
+                          <SessionFilterMenu
+                            value={activeTab}
+                            onChange={onActiveTabChange}
+                            multiUser={multiUser}
+                          />
+                        </div>
                       }
                     />
                   </ChatsDropZone>
@@ -2140,6 +2159,61 @@ function SectionHeader({
   );
 }
 
+// Filter menu on the Sessions heading — a radio group, since the options are
+// mutually exclusive slices of one list (this replaced the My/Shared tab strip
+// that used to sit above the list).
+function SessionFilterMenu({
+  value,
+  onChange,
+  multiUser,
+}: {
+  value: SidebarTab;
+  onChange: (value: SidebarTab) => void;
+  multiUser: boolean;
+}) {
+  const filters = multiUser
+    ? SIDEBAR_FILTERS
+    : SIDEBAR_FILTERS.filter((filter) => filter.value !== "shared");
+  return (
+    <DropdownMenu>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Filter sessions"
+              data-testid="session-filter"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <ListFilterIcon className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Filter sessions</TooltipContent>
+      </Tooltip>
+      <DropdownMenuContent align="end" className="min-w-44 [&_[role=menuitemradio]]:text-xs">
+        <DropdownMenuLabel className="text-muted-foreground text-xs">Display</DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={value}
+          onValueChange={(next) => onChange(next as SidebarTab)}
+        >
+          {filters.map((filter) => (
+            <DropdownMenuRadioItem
+              key={filter.value}
+              value={filter.value}
+              data-testid={`session-filter-${filter.value}`}
+            >
+              {filter.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function ProjectHeaderActions({
   projectNames,
   collapsed,
@@ -2147,6 +2221,7 @@ function ProjectHeaderActions({
   hasProjectSessions,
   onExpandAll,
   onRevert,
+  onCollapseAll,
   onProjectCreated,
   onEnterSelectionMode,
 }: {
@@ -2158,12 +2233,14 @@ function ProjectHeaderActions({
   hasProjectSessions: boolean;
   onExpandAll: (projectNames: string[]) => void;
   onRevert: () => void;
+  onCollapseAll: () => void;
   onProjectCreated: (projectName: string) => void;
   onEnterSelectionMode: () => void;
 }) {
   const showExpandControls = !collapsed && projectNames.length > 0;
   const allExpanded =
     projectNames.length > 0 && projectNames.every((name) => expandedProjects.includes(name));
+  const anyExpanded = projectNames.some((name) => expandedProjects.includes(name));
   // The kebab only carries the expand/collapse and "Select sessions" items; with
   // neither applicable (e.g. no projects yet) it would open empty, so hide it.
   const showMenu = showExpandControls || hasProjectSessions;
@@ -2186,21 +2263,32 @@ function ProjectHeaderActions({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-40 [&_[role=menuitem]]:text-xs">
-            {showExpandControls &&
-              (allExpanded ? (
-                <DropdownMenuItem data-testid="revert-projects" onSelect={() => onRevert()}>
-                  <Minimize2Icon className="size-3.5" />
-                  Collapse to previous
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem
-                  data-testid="expand-all-projects"
-                  onSelect={() => onExpandAll(projectNames)}
-                >
-                  <Maximize2Icon className="size-3.5" />
-                  Expand all
-                </DropdownMenuItem>
-              ))}
+            {/* Expand all and Collapse all are gated independently, so a mixed
+                set of folders offers both. "Collapse to previous" only appears
+                once everything is open — that's the state "Expand all" leaves
+                behind, and the only one where restoring a snapshot differs from
+                collapsing outright. */}
+            {showExpandControls && !allExpanded && (
+              <DropdownMenuItem
+                data-testid="expand-all-projects"
+                onSelect={() => onExpandAll(projectNames)}
+              >
+                <Maximize2Icon className="size-3.5" />
+                Expand all
+              </DropdownMenuItem>
+            )}
+            {showExpandControls && anyExpanded && (
+              <DropdownMenuItem data-testid="collapse-all-projects" onSelect={onCollapseAll}>
+                <Minimize2Icon className="size-3.5" />
+                Collapse all
+              </DropdownMenuItem>
+            )}
+            {showExpandControls && allExpanded && (
+              <DropdownMenuItem data-testid="revert-projects" onSelect={() => onRevert()}>
+                <Minimize2Icon className="size-3.5" />
+                Collapse to previous
+              </DropdownMenuItem>
+            )}
             {hasProjectSessions && (
               <DropdownMenuItem
                 data-testid="projects-select-sessions"
