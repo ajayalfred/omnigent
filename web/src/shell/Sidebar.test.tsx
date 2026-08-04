@@ -804,20 +804,16 @@ describe("Sidebar tabs", () => {
     expect(screen.queryByText("conv_shared")).toBeNull();
   });
 
-  it("drops the Shared filter on a single-user (local) server and shows only owned sessions", () => {
-    // A loopback-only server can't share sessions with anyone, so the scope
-    // split is meaningless — collapse to the plain owned-session list.
+  it("drops the Shared filter option on a single-user (local) server", () => {
+    // A loopback-only server can't share sessions, so that one option is
+    // meaningless there. The rest of the menu keeps working.
     isServerLocalMock.mockReturnValue(true);
     mockConversations([
       conv("conv_mine", "Claude Code"),
-      conv("conv_shared", "Claude Code", { owner: "other@example.com" }),
+      conv("conv_done", "Claude Code", { archived: true }),
     ]);
     renderSidebar();
-    // Scope is pinned to the owned list; the shared row never appears, even
-    // though the default filter is otherwise "All sessions".
-    expect(screen.getByText("conv_mine")).toBeInTheDocument();
-    expect(screen.queryByText("conv_shared")).toBeNull();
-    // …and the menu doesn't offer a Shared option there.
+
     fireEvent.pointerDown(screen.getByTestId("session-filter"), {
       button: 0,
       ctrlKey: false,
@@ -825,6 +821,12 @@ describe("Sidebar tabs", () => {
     });
     expect(screen.queryByTestId("session-filter-shared")).toBeNull();
     expect(screen.getByTestId("session-filter-all")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("session-filter-archived"));
+
+    // Picking a filter still re-scopes the list here — the local-server case
+    // must not pin the scope and swallow the choice.
+    expect(screen.getByText("conv_done")).toBeInTheDocument();
+    expect(screen.queryByText("conv_mine")).toBeNull();
   });
 
   it("gives a pinned shared session a Pinned section under Shared, not My sessions", () => {

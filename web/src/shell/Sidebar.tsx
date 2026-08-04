@@ -172,10 +172,9 @@ import {
   writeLegacyPinnedConversationIds,
 } from "./sidebarNav";
 
-// Positioning for a row's trailing session-state badge. On desktop the badge
-// fades out on hover/focus so the pin + kebab controls can take its place, and
-// shares their right-1 edge so the two line up as one trailing column; on
-// mobile it sits left of the always-visible controls (right-[4.5rem]).
+// Positioning for a row's trailing session-state badge. On desktop it shares
+// the controls' right-1 edge and fades on hover so the pin + kebab take its
+// place; on mobile it sits left of the always-visible controls.
 const SESSION_STATE_SLOT_CLASS =
   "-translate-y-1/2 pointer-events-none absolute top-1/2 right-[4.5rem] flex h-5 items-center transition-opacity md:right-1 md:group-hover:opacity-0 md:group-has-[:focus-visible]:opacity-0 md:group-has-[[aria-expanded=true]]:opacity-0";
 
@@ -222,15 +221,12 @@ function SidebarRowDataProvider({
 }
 
 /**
- * Which slice of sessions the sidebar is showing, picked from the Sessions
- * heading's filter menu. ``"all"`` is everything the viewer can see;
- * ``"mine"``/``"shared"`` split it by ownership (mirroring
- * :func:`isOwnedByViewer`); ``"archived"`` shows only archived sessions, which
- * every other option hides.
+ * Which slice of sessions the sidebar shows. ``"mine"``/``"shared"`` split by
+ * ownership (see :func:`isOwnedByViewer`); ``"archived"`` is the only slice
+ * that includes archived sessions.
  */
 type SidebarTab = "all" | "mine" | "shared" | "archived";
 
-/** Filter menu options, in the order the design lists them. */
 const SIDEBAR_FILTERS: { value: SidebarTab; label: string }[] = [
   { value: "all", label: "All sessions" },
   { value: "mine", label: "My sessions" },
@@ -443,15 +439,10 @@ export function Sidebar({ open, onClose, dragProgress = null, onOpenSearch }: Si
   // (from the Sessions header or the Projects header kebab, respectively).
   const [selectionScope, setSelectionScope] = useState<SelectionScope>("sessions");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // Which session tab is shown. "mine" (default) keeps the full Pinned /
-  // Projects / Chats structure; "shared" is a flat list of sessions others
-  // shared with the viewer.
+  // Active filter from the Sessions heading's menu.
   const [activeTab, setActiveTab] = useState<SidebarTab>("all");
-  // "Shared sessions" only makes sense when sessions can be shared with other
-  // people at all — i.e. a multi-user server. A loopback-only local server has
-  // just the one user (mirrors the disabled Share affordance; see
-  // `isCurrentServerLocal` and AppShell's `shareDisabled`), so drop that one
-  // filter option there.
+  // A loopback-only server has one user, so "Shared" is meaningless there —
+  // the filter menu drops that option. Mirrors AppShell's `shareDisabled`.
   const multiUser = !isCurrentServerLocal();
 
   const lastSelectedIdRef = useRef<string | null>(null);
@@ -859,10 +850,6 @@ export function Sidebar({ open, onClose, dragProgress = null, onOpenSearch }: Si
             </Button>
           </div>
 
-          {/* The session-scope tabs ("My sessions" / "Shared with me") are gone —
-          scope now lives in the Sessions heading's filter menu (see
-          SessionFilterMenu), which also covers All and Archived. */}
-
           <nav
             ref={scrollContainerRef}
             // Keep wheel/touch scrolling without letting classic-scrollbar
@@ -874,10 +861,7 @@ export function Sidebar({ open, onClose, dragProgress = null, onOpenSearch }: Si
               scrollContainerRef={scrollContainerRef}
               onRowClick={onNavClick}
               searchQuery=""
-              // A single-user server can't have shared sessions, so pin the
-              // scope to the viewer's own list there — "All" would otherwise
-              // surface a foreign-owned row the viewer can't have received.
-              activeTab={multiUser ? activeTab : "mine"}
+              activeTab={activeTab}
               onActiveTabChange={switchTab}
               multiUser={multiUser}
               pinnedConversationIds={pinnedConversationIds}
@@ -1113,9 +1097,8 @@ interface ConversationListProps {
   onRowClick: (e: MouseEvent<HTMLAnchorElement>) => void;
   searchQuery: string;
   activeTab: SidebarTab;
-  /** Switches the active filter from the Sessions heading's filter menu. */
   onActiveTabChange: (tab: SidebarTab) => void;
-  /** Whether the server has more than one user; gates the "Shared" filter. */
+  /** Multi-user server; gates the "Shared" filter option. */
   multiUser: boolean;
   pinnedConversationIds: string[];
   // The server-authoritative pinned sessions, so a pinned session that sits
@@ -1274,10 +1257,8 @@ function ConversationList({
     // also present in the paginated list, and merging both would render it twice.
     const allWithPinned = dedupeConversationsById([...allConversations, ...pinnedConversations]);
     const notArchived = allWithPinned.filter((c) => c.archived !== true);
-    // The active filter picks the slice; the Pinned / Projects / Sessions
-    // structure is then built from it, so every filter reuses the same section
-    // layout with different conversations. "archived" is the only filter that
-    // shows archived sessions — the rest hide them.
+    // The filter picks the slice; the Pinned / Projects / Sessions structure is
+    // then built from it, so every filter reuses the same layout.
     const tabScoped =
       activeTab === "archived"
         ? allWithPinned.filter((c) => c.archived === true)
@@ -1297,12 +1278,9 @@ function ConversationList({
     const pinned = orderByPinnedTimestamp(tabScoped.filter((c) => pinnedSet.has(c.id)));
     const pinnedIdSet = new Set(pinned.map((c) => c.id));
 
-    // Filing into a project is owner-only, so the Shared filter renders no
-    // folders; Archived shows a flat list too (an archived session reads as
-    // archived first, not as a project member). Otherwise each folder holds its
-    // non-pinned sessions; a pinned member is excluded (it lives under Pinned),
-    // so pinning a project's last session leaves the folder showing "No
-    // sessions".
+    // Filing is owner-only, so Shared renders no folders; Archived is flat too
+    // (archived outranks project membership). Elsewhere each folder holds its
+    // non-pinned sessions — pinning a project's last one leaves it empty.
     const filedIds = new Set<string>();
     const projectGroups: { id: string | null; name: string; conversations: Conversation[] }[] =
       activeTab === "shared" || activeTab === "archived"
@@ -1328,7 +1306,7 @@ function ConversationList({
     // unloaded page. We render it as a folder with a "No sessions" placeholder
     // rather than hiding it (matches the target sidebar layout).
 
-    // Sessions: the remainder of the filter's slice — not pinned, not filed.
+    // Sessions: the remainder — not pinned, not filed.
     const sessions = sortByUpdatedAtDesc(
       tabScoped.filter((c) => !pinnedIdSet.has(c.id) && !filedIds.has(c.id)),
       activeOverride,
@@ -1540,10 +1518,9 @@ function ConversationList({
       return target;
     });
   }, [expandedViaButton, revertSnapshot]);
-  // "Collapse all" closes every folder outright — distinct from "Collapse to
-  // previous", which restores whatever was open before "Expand all". Offered
-  // whenever at least one folder is open, so a mixed set can be closed in one
-  // go without first expanding everything.
+  // Closes every folder outright — distinct from "Collapse to previous", which
+  // restores the pre-expand set. Offered whenever a folder is open, so a mixed
+  // set collapses in one step.
   const collapseAllProjects = useCallback(() => {
     setExpandedProjects(() => {
       setExpandedViaButton(false);
@@ -1900,10 +1877,9 @@ function ConversationList({
                         ) : undefined
                       }
                       headerAction={
-                        // The filter stays reachable while bulk-selecting (the
-                        // tab strip it replaced did too, and switching scope
-                        // just exits selection); only the "select" entry point
-                        // hides, since selection is already on.
+                        // The filter stays reachable while bulk-selecting;
+                        // switching scope just exits selection. Only the
+                        // "select" entry point hides, being already active.
                         <div className="flex items-center gap-0.5">
                           {!selectionMode && (
                             <Tooltip>
@@ -2159,9 +2135,8 @@ function SectionHeader({
   );
 }
 
-// Filter menu on the Sessions heading — a radio group, since the options are
-// mutually exclusive slices of one list (this replaced the My/Shared tab strip
-// that used to sit above the list).
+// Scope filter on the Sessions heading. A radio group: the options are
+// mutually exclusive slices of one list.
 function SessionFilterMenu({
   value,
   onChange,
@@ -2263,11 +2238,9 @@ function ProjectHeaderActions({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-40 [&_[role=menuitem]]:text-xs">
-            {/* Expand all and Collapse all are gated independently, so a mixed
-                set of folders offers both. "Collapse to previous" only appears
-                once everything is open — that's the state "Expand all" leaves
-                behind, and the only one where restoring a snapshot differs from
-                collapsing outright. */}
+            {/* Gated independently so a mixed set offers both. "Collapse to
+                previous" needs everything open — the state "Expand all" leaves
+                behind, and the only one where a snapshot beats collapsing. */}
             {showExpandControls && !allExpanded && (
               <DropdownMenuItem
                 data-testid="expand-all-projects"
