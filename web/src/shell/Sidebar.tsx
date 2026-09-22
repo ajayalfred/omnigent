@@ -3172,7 +3172,7 @@ function ConversationSection({
                 // control itself still reveals it.
                 <div
                   className={cn(
-                    "flex items-center transition-opacity",
+                    "flex items-center rounded transition-opacity",
                     actionHoverOnly
                       ? "[@media((hover:hover)_and_(pointer:fine))]:opacity-0 [@media((hover:hover)_and_(pointer:fine))]:group-has-[[data-header-controls]:focus-within]/header:opacity-100 [@media((hover:hover)_and_(pointer:fine))]:group-hover/header:opacity-100 [@media((hover:hover)_and_(pointer:fine))]:group-has-[[data-state=open]]/header:opacity-100 [@media((hover:hover)_and_(pointer:fine))]:has-[[aria-expanded=true]]:opacity-100"
                       : "[@media((hover:hover)_and_(pointer:fine))]:md:opacity-0 [@media((hover:hover)_and_(pointer:fine))]:md:group-has-[[data-header-controls]:focus-within]/header:opacity-100 [@media((hover:hover)_and_(pointer:fine))]:md:group-hover/header:opacity-100 [@media((hover:hover)_and_(pointer:fine))]:md:group-has-[[data-state=open]]/header:opacity-100 [@media((hover:hover)_and_(pointer:fine))]:md:group-has-[[data-testid=session-filter][aria-expanded=true]]/header:opacity-100 [@media((hover:hover)_and_(pointer:fine))]:md:has-[[aria-expanded=true]]:opacity-100",
@@ -4014,7 +4014,7 @@ function ConversationRowImpl({
     // unmounts. A failed archive reconciles the row back with its own error
     // toast. The toast is driven imperatively (module state + app-level
     // Toaster), so it survives this row unmounting.
-    if (nextArchived) showArchiveUndoToast(queryClient, [conversation]);
+    if (nextArchived) showArchiveUndoToast(queryClient, [conversation], navigate);
   }
 
   function runUnarchive() {
@@ -5210,7 +5210,12 @@ function ProjectFolderMenu({
           size="icon-xs"
           aria-label={`Project actions for ${projectName}`}
           data-testid="project-actions"
-          className="sr-only text-muted-foreground focus-visible:not-sr-only [@media((hover:hover)_and_(pointer:fine))]:not-sr-only [@media((hover:hover)_and_(pointer:fine))]:flex"
+          // sr-only keeps a focusable/announced trigger where no fine hover can
+          // reveal it (touch/AT). On reveal, not-sr-only zeroes width/height/
+          // padding, so restore the icon-xs box (size-6) — otherwise the ghost
+          // hover highlight collapses to the glyph and mismatches the session /
+          // project-list kebabs.
+          className="sr-only text-muted-foreground focus-visible:not-sr-only focus-visible:size-6 [@media((hover:hover)_and_(pointer:fine))]:not-sr-only [@media((hover:hover)_and_(pointer:fine))]:flex [@media((hover:hover)_and_(pointer:fine))]:size-6"
           onClick={(e) => e.stopPropagation()}
         >
           <MoreHorizontalIcon className="size-3.5" data-icon-size="14" />
@@ -5580,7 +5585,7 @@ function BulkActionBar({
     // Offer Undo for the whole batch. Fire now, before this bar unmounts with
     // the cleared selection; the toast is driven by module state + the
     // app-level Toaster, so it outlives this component.
-    showArchiveUndoToast(queryClient, nonArchivedSelected);
+    showArchiveUndoToast(queryClient, nonArchivedSelected, navigate);
   }
 
   function handleUnarchive() {
