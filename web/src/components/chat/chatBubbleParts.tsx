@@ -18,10 +18,10 @@ import {
   CopyIcon,
   FileTextIcon,
   FolderIcon,
-  GitForkIcon,
   ImageIcon,
   Link2Icon,
   Loader2Icon,
+  SplitIcon,
   XIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -1017,8 +1017,10 @@ function AssistantBubble({
         {!foldOnly && !errorOnly && (
           <div
             className={cn(
-              "flex items-center gap-3 py-1 opacity-40 transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100",
-              !actionsPersistent && "md:opacity-0",
+              "flex items-center gap-3 py-1",
+              actionsPersistent
+                ? "opacity-100"
+                : "opacity-40 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100",
             )}
           >
             <MessageActions>
@@ -1043,7 +1045,7 @@ function AssistantBubble({
                   onClick={() => forkDialog.openForkDialog({ upToResponseId: bubble.responseId })}
                   componentId="chat.message.fork"
                 >
-                  <GitForkIcon size={14} />
+                  <SplitIcon size={14} />
                 </MessageAction>
               )}
               <MessageAction
