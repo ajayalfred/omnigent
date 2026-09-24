@@ -325,7 +325,7 @@ describe("FolderTree directory affordance", () => {
       "exit",
     );
 
-    act(() => vi.advanceTimersByTime(160));
+    act(() => vi.advanceTimersByTime(180));
     expect(screen.queryByText("app.ts")).toBeNull();
 
     fireEvent.click(folderRow);

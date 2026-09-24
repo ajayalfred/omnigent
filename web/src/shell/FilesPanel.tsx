@@ -8,6 +8,7 @@ import {
   FileTypeIcon,
   FilterIcon,
   MoonIcon,
+  RefreshCwIcon,
   SearchIcon,
   XIcon,
 } from "lucide-react";
@@ -114,9 +115,8 @@ function HiddenFilesToggle({
             )}
             onClick={onToggle}
           >
-            {/* The icon shows the current state, not the action: a plain eye
-                means hidden files are visible, a slashed eye means they are not. */}
-            {showHidden ? <EyeIcon /> : <EyeOffIcon />}
+            {/* The icon previews the action: slash to hide, eye to reveal. */}
+            {showHidden ? <EyeOffIcon /> : <EyeIcon />}
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">{tooltipLabel}</TooltipContent>
@@ -145,30 +145,37 @@ function SortSelector({
 }) {
   const active = SORT_OPTIONS.find((o) => o.value === sort) ?? SORT_OPTIONS[0];
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          aria-label={`Sort: ${active.label}`}
-          className="shrink-0 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowDownUpIcon />
-          <span>{active.label}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuRadioGroup value={sort} onValueChange={(v) => onChange(v as ChangedSort)}>
-          {SORT_OPTIONS.map(({ value, label, Icon }) => (
-            <DropdownMenuRadioItem key={value} value={value}>
-              <Icon className="size-3.5" />
-              {label}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <TooltipProvider>
+      <DropdownMenu>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-label={`Sort: ${active.label}`}
+                className="shrink-0 gap-[2px] text-muted-foreground hover:text-foreground"
+              >
+                <ArrowDownUpIcon />
+                <span>{active.label}</span>
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Sort files</TooltipContent>
+        </Tooltip>
+        <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuRadioGroup value={sort} onValueChange={(v) => onChange(v as ChangedSort)}>
+            {SORT_OPTIONS.map(({ value, label, Icon }) => (
+              <DropdownMenuRadioItem key={value} value={value}>
+                <Icon className="size-3.5" />
+                {label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </TooltipProvider>
   );
 }
 
@@ -270,6 +277,8 @@ export function FilesPanel({
   const [treeExclude, setTreeExclude] = useState("");
   const [debouncedTreeExclude, setDebouncedTreeExclude] = useState("");
   const [showSearchFilters, setShowSearchFilters] = useState(false);
+  const [directoryRefreshToken, setDirectoryRefreshToken] = useState(0);
+  const [refreshingFiles, setRefreshingFiles] = useState(false);
   // The drawer (onClose) adds an X close button to the header. Both the drawer
   // and the inline rail (frameless) fill their parent's height and drop the
   // rounded card chrome; only the standalone card caps content at max-h.
@@ -413,6 +422,31 @@ export function FilesPanel({
   // Highlight the filters toggle when include/exclude carry a value.
   const treeFiltersActive = treeInclude.trim().length > 0 || treeExclude.trim().length > 0;
 
+  const refreshFiles = useCallback(async () => {
+    if (refreshingFiles) return;
+    setRefreshingFiles(true);
+    if (!flatView) setDirectoryRefreshToken((token) => token + 1);
+    try {
+      const refreshes = flatView
+        ? [changedQuery.refetch()]
+        : [
+            allFilesQuery.refetch(),
+            changedQuery.refetch(),
+            ...(debouncedTreeSearch.trim() ? [treeSearchQuery.refetch()] : []),
+          ];
+      await Promise.all(refreshes);
+    } finally {
+      setRefreshingFiles(false);
+    }
+  }, [
+    allFilesQuery,
+    changedQuery,
+    debouncedTreeSearch,
+    flatView,
+    refreshingFiles,
+    treeSearchQuery,
+  ]);
+
   // Persist/restore the list's scroll position across conversation and view
   // switches. Keyed per conversation + view (Changed vs All) since the two
   // lists have independent heights. Readiness is data presence rather than
@@ -472,6 +506,24 @@ export function FilesPanel({
               <CopyPathButton path={workingDir} label="Copy folder path" />
             </TooltipProvider>
           )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Refresh files"
+                  disabled={refreshingFiles}
+                  className="shrink-0 text-muted-foreground hover:text-foreground"
+                  onClick={() => void refreshFiles()}
+                >
+                  <RefreshCwIcon className={cn(refreshingFiles && "animate-spin")} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Refresh files</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           {onClose && (
             <button
               type="button"
@@ -492,7 +544,7 @@ export function FilesPanel({
               scroll container so negative margins aren't clipped. */}
       {flatView && (
         <div
-          className="shrink-0 flex items-center gap-2 px-2 py-1.5 @max-[400px]/filespanel:flex-col @max-[400px]/filespanel:items-stretch"
+          className="shrink-0 flex items-center gap-2 px-2 py-2 @max-[400px]/filespanel:flex-col @max-[400px]/filespanel:items-stretch"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex min-w-0 flex-1 items-center gap-[2px]">
@@ -518,7 +570,7 @@ export function FilesPanel({
       )}
       {!flatView && (
         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center gap-2 px-2 py-1.5 @max-[400px]/filespanel:flex-col @max-[400px]/filespanel:items-stretch">
+          <div className="flex items-center gap-2 px-2 py-2 @max-[400px]/filespanel:flex-col @max-[400px]/filespanel:items-stretch">
             <div className="flex min-w-0 flex-1 items-center gap-[2px]">
               <div className="flex min-w-0 flex-1 items-center gap-[6px] rounded-lg border border-border px-[10px] py-[4px] transition-colors focus-within:border-border-strong">
                 <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
@@ -532,29 +584,35 @@ export function FilesPanel({
                 />
               </div>
               <SortSelector sort={changedSort} onChange={onSortChange} />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={showSearchFilters ? "Hide search filters" : "Show search filters"}
-                aria-expanded={showSearchFilters}
-                title="Files to include / exclude"
-                className={cn(
-                  "shrink-0",
-                  showSearchFilters || treeFiltersActive
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-                onClick={() => setShowSearchFilters((v) => !v)}
-              >
-                <FilterIcon />
-                {treeFiltersActive && !showSearchFilters && (
-                  <span
-                    className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-primary"
-                    aria-hidden
-                  />
-                )}
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={showSearchFilters ? "Hide search filters" : "Show search filters"}
+                      aria-expanded={showSearchFilters}
+                      className={cn(
+                        "shrink-0",
+                        showSearchFilters || treeFiltersActive
+                          ? "text-foreground"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                      onClick={() => setShowSearchFilters((v) => !v)}
+                    >
+                      <FilterIcon />
+                      {treeFiltersActive && !showSearchFilters && (
+                        <span
+                          className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-primary"
+                          aria-hidden
+                        />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Files to include / exclude</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <HiddenFilesToggle
                 showHidden={showHidden}
                 onToggle={() => onShowHiddenChange(!showHidden)}
@@ -584,7 +642,7 @@ export function FilesPanel({
         ref={scrollRef}
         className={cn(
           "overflow-y-auto px-2 pb-2",
-          flatView ? "pt-1" : "pt-2",
+          flatView ? "pt-1" : "pt-0",
           fillHeight ? "min-h-0 flex-1" : "max-h-72",
         )}
         onScroll={handleScroll}
@@ -634,6 +692,7 @@ export function FilesPanel({
             onNavigateDir={navigateToChild}
             onExitSearch={exitTreeSearch}
             scrollParentRef={scrollRef}
+            refreshToken={directoryRefreshToken}
           />
         )}
       </section>

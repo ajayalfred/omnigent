@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +9,7 @@ import {
   PathUnreachableError,
   useWorkspaceAllFiles,
   useWorkspaceChangedFiles,
+  useWorkspaceDirectories,
   useWorkspaceDirectory,
   useWorkspaceEnvironment,
   useWorkspaceFileSearch,
@@ -67,8 +68,12 @@ vi.mock("@/hooks/useSession", () => ({
 const useAllFilesMock = vi.mocked(useWorkspaceAllFiles);
 const useChangedFilesMock = vi.mocked(useWorkspaceChangedFiles);
 const useDirectoryMock = vi.mocked(useWorkspaceDirectory);
+const useDirectoriesMock = vi.mocked(useWorkspaceDirectories);
 const useEnvironmentMock = vi.mocked(useWorkspaceEnvironment);
 const useSearchMock = vi.mocked(useWorkspaceFileSearch);
+const allFilesRefetchMock = vi.fn(() => Promise.resolve());
+const changedFilesRefetchMock = vi.fn(() => Promise.resolve());
+const searchRefetchMock = vi.fn(() => Promise.resolve());
 
 function file(path: string, bytes = 10): WorkspaceFile {
   return {
@@ -113,6 +118,7 @@ function allFilesResult(files: WorkspaceFile[]) {
     error: null,
     isError: false,
     isLoading: false,
+    refetch: allFilesRefetchMock,
   } as unknown as ReturnType<typeof useWorkspaceAllFiles>;
 }
 
@@ -122,6 +128,7 @@ function changedFilesResult(files: WorkspaceChangedFile[] = []) {
     error: null,
     isError: false,
     isLoading: false,
+    refetch: changedFilesRefetchMock,
   } as unknown as ReturnType<typeof useWorkspaceChangedFiles>;
 }
 
@@ -162,6 +169,7 @@ function searchResult(
     isLoading: false,
     isError: false,
     error: null,
+    refetch: searchRefetchMock,
   } as unknown as ReturnType<typeof useWorkspaceFileSearch>;
 }
 
@@ -231,8 +239,12 @@ beforeEach(() => {
   useAllFilesMock.mockReset();
   useChangedFilesMock.mockReset();
   useDirectoryMock.mockReset();
+  useDirectoriesMock.mockClear();
   useEnvironmentMock.mockReset();
   useSearchMock.mockReset();
+  allFilesRefetchMock.mockClear();
+  changedFilesRefetchMock.mockClear();
+  searchRefetchMock.mockClear();
 });
 
 afterEach(() => {
@@ -338,20 +350,19 @@ describe("FilesPanel header role", () => {
 });
 
 describe("FilesPanel hidden-files toggle icon", () => {
-  // The eye reflects the current state, not the pending action: a plain eye
-  // means hidden files are visible, a slashed eye means they are filtered out.
-  it("shows a plain eye while hidden files are visible", () => {
+  // The icon previews the action the toggle will perform.
+  it("shows a slashed eye when clicking will hide hidden files", () => {
     renderPanel({ conversationId: "conv_eye_on", files: [], showHidden: true });
     const toggle = screen.getByRole("button", { name: "Hide hidden files" });
     expect(toggle).toHaveAttribute("data-size", "icon-sm");
-    expect(toggle.querySelector(".lucide-eye")).not.toBeNull();
-    expect(toggle.querySelector(".lucide-eye-off")).toBeNull();
+    expect(toggle.querySelector(".lucide-eye-off")).not.toBeNull();
   });
 
-  it("shows a slashed eye while hidden files are filtered out", () => {
+  it("shows a plain eye when clicking will reveal hidden files", () => {
     renderPanel({ conversationId: "conv_eye_off", files: [], showHidden: false });
     const toggle = screen.getByRole("button", { name: "Show hidden files" });
-    expect(toggle.querySelector(".lucide-eye-off")).not.toBeNull();
+    expect(toggle.querySelector(".lucide-eye")).not.toBeNull();
+    expect(toggle.querySelector(".lucide-eye-off")).toBeNull();
   });
 });
 
@@ -621,7 +632,7 @@ describe("FilesPanel changed files search", () => {
 
     fireEvent.click(srcFolder);
     expect(srcFolder).toHaveAttribute("aria-expanded", "false");
-    act(() => vi.advanceTimersByTime(160));
+    act(() => vi.advanceTimersByTime(180));
     expect(screen.queryByText("App.tsx")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "open drawer" }));
@@ -1180,6 +1191,7 @@ describe("FilesPanel tree (Explore) search", () => {
 
     const preferences = screen.getByRole("button", { name: "Show search filters" });
     expect(preferences).toHaveAttribute("data-size", "icon-sm");
+    expect(preferences).not.toHaveAttribute("title");
     fireEvent.click(preferences);
 
     // Both glob inputs become visible after the toggle is opened.
@@ -1326,6 +1338,8 @@ describe("FilesPanel sort control", () => {
     const sort = screen.getByRole("button", { name: /^Sort:/ });
     expect(sort).toBeInTheDocument();
     expect(sort).toHaveAttribute("data-size", "sm");
+    expect(sort).toHaveClass("gap-[2px]");
+    expect(sort).not.toHaveAttribute("title");
     expect(sort).toHaveTextContent("Last edited");
     expect(sort).not.toHaveTextContent("Sort:");
     expect(sort.querySelector(".lucide-arrow-down-up")).not.toBeNull();
@@ -1475,7 +1489,7 @@ describe("FolderTree expanded state across conversation switches", () => {
     // Collapse src/ in conversation A (expanded by default).
     expect(screen.getByText("App.tsx")).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: /src\// }));
-    act(() => vi.advanceTimersByTime(160));
+    act(() => vi.advanceTimersByTime(180));
     expect(screen.queryByText("App.tsx")).toBeNull();
 
     // Switch to conversation B in place: defaults apply, src/ is expanded.
@@ -1785,6 +1799,30 @@ describe("FilesPanel header copy path", () => {
     // The header copies the ABSOLUTE path -- pasting a basename would be
     // useless, and the header is the one place the full path is on screen.
     expect(copyTextMock).toHaveBeenCalledWith("/home/user/proj");
+  });
+
+  it("refreshes the current tree after the copy control", async () => {
+    renderPanel({
+      conversationId: "conv_refresh_files",
+      files: [dir("src")],
+      workingDir: "/home/user/proj",
+    });
+
+    const copy = screen.getByRole("button", { name: "Copy folder path: proj" });
+    const refresh = screen.getByRole("button", { name: "Refresh files" });
+    expect(refresh).toHaveAttribute("data-size", "icon-sm");
+    expect(copy.compareDocumentPosition(refresh) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(refresh);
+
+    await waitFor(() => expect(allFilesRefetchMock).toHaveBeenCalledTimes(1));
+    expect(changedFilesRefetchMock).toHaveBeenCalledTimes(1);
+    expect(useDirectoriesMock).toHaveBeenLastCalledWith(
+      "conv_refresh_files",
+      expect.any(Array),
+      "",
+      1,
+    );
   });
 
   it("copies the browsed directory after navigating away from the workspace", () => {

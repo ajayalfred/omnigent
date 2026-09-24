@@ -31,7 +31,7 @@ import { WorkspaceFileIcon } from "./WorkspaceFileIcon";
 const INDENT_STEP = 16;
 const BASE_PAD = 8;
 const GUIDE_OFFSET = 7;
-const TREE_MOTION_MS = 120;
+const TREE_MOTION_MS = 180;
 const indentFor = (depth: number) => depth * INDENT_STEP + BASE_PAD;
 
 // One vertical guide line per ancestor level; the row must be `relative`.
@@ -401,6 +401,7 @@ export function FolderTree({
   onNavigateDir,
   onExitSearch,
   scrollParentRef,
+  refreshToken = 0,
 }: {
   files: WorkspaceFile[] | undefined;
   isLoading: boolean;
@@ -457,6 +458,8 @@ export function FolderTree({
    * own internal scroll container.
    */
   scrollParentRef?: RefObject<HTMLElement | null>;
+  /** Changes when the user explicitly refreshes expanded directory listings. */
+  refreshToken?: number;
 }) {
   // Initialise from the module-level cache so expanded state survives
   // unmount/remount (e.g. opening the FileViewer and navigating back).
@@ -646,7 +649,7 @@ export function FolderTree({
   // all the way down, and it converges the same whether listings arrive async
   // or are already cached.
   const [lazyPaths, setLazyPaths] = useState<string[]>([]);
-  const dirData = useWorkspaceDirectories(conversationId, lazyPaths, browseLocation);
+  const dirData = useWorkspaceDirectories(conversationId, lazyPaths, browseLocation, refreshToken);
   useEffect(() => {
     const next = visibleTree
       ? expandedLazyPaths(visibleTree, expandedPaths, showHidden, sort, dirData)
