@@ -1406,6 +1406,40 @@ aside[aria-label="Workspace"][data-maximized] {
   --message-highlight: color-mix(in oklch, var(--warning) 24%, transparent);
 }
 
+/* File-tree children fade without animating geometry. Height or position
+   transitions fight the virtualizer and make long lists visibly drift. */
+@keyframes file-tree-row-expand {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes file-tree-row-collapse {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.file-tree-row-enter,
+.file-tree-row-exit {
+  overflow: hidden;
+}
+
+.file-tree-row-enter {
+  animation: file-tree-row-expand 120ms ease-out both;
+}
+
+.file-tree-row-exit {
+  pointer-events: none;
+  animation: file-tree-row-collapse 120ms ease-in both;
+}
+
 /* Workspace navigation keeps its compact outline highlight. */
 @keyframes user-msg-flash {
   0% {

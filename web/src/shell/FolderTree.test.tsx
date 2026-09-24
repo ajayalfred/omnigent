@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -40,7 +40,10 @@ import {
 } from "./fileStatusUtils";
 import { FolderTree } from "./FolderTree";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 beforeEach(() => copyTextMock.mockClear());
 
 /** Render FolderTree (the "All" files tab) with defaults, overriding per test.
@@ -171,6 +174,7 @@ describe("FolderTree file size / download alignment", () => {
     const size = screen.getByText("2.0 KB");
     const slot = size.parentElement;
     expect(slot).toHaveClass("relative");
+    expect(size).toHaveClass("text-sm");
     // Size hides on hover but keeps its width to avoid a layout shift.
     expect(size).toHaveClass("group-hover:invisible");
 
@@ -239,6 +243,7 @@ describe("FolderTree trailing column", () => {
     const copyButtons = screen.getAllByRole("button", { name: /^Copy (path|folder path):/ });
     expect(copyButtons).toHaveLength(3);
     for (const button of copyButtons) {
+      expect(button).toHaveAttribute("data-size", "icon-sm");
       // The copy button lives inside the fixed-width trailing column...
       const slot = button.closest(`.${ROW_META_SLOT_CLASS}`);
       expect(slot, "every row's copy button must sit in the trailing column").not.toBeNull();
@@ -268,41 +273,90 @@ describe("FolderTree trailing column", () => {
   });
 });
 
-describe("FolderTree double-click to open a folder", () => {
-  it("re-roots onto the folder on double click, but only expands on a single click", () => {
-    // Finder's contract. A single click must keep working as the expand
-    // toggle -- if double click stole it, the tree would be unusable.
+describe("FolderTree directory affordance", () => {
+  it("shows the folder state at rest and swaps it for a directional chevron on hover", () => {
+    renderTree({ files: [dir("src")], conversationId: "conv_folder_affordance" });
+
+    const folderRow = screen.getByRole("button", { name: "src/" });
+    const closedFolder = folderRow.querySelector(".lucide-folder");
+    const chevron = folderRow.querySelector(".lucide-chevron-right");
+
+    expect(closedFolder).not.toBeNull();
+    expect(closedFolder?.parentElement).toHaveClass(
+      "group-hover/folder:opacity-0",
+      "group-focus-visible/folder:opacity-0",
+    );
+    expect(chevron).toHaveClass(
+      "opacity-0",
+      "group-hover/folder:opacity-100",
+      "group-focus-visible/folder:opacity-100",
+    );
+
+    fireEvent.click(folderRow);
+
+    expect(folderRow.querySelector(".lucide-folder-open")).not.toBeNull();
+    expect(folderRow.querySelector(".lucide-chevron-right")).toHaveClass("rotate-90");
+  });
+
+  it("uses the interface body-text token for file and folder names", () => {
+    renderTree({ files: [dir("src"), file("README.md")] });
+
+    for (const label of [screen.getByText("src/"), screen.getByText("README.md")]) {
+      expect(label).toHaveClass("text-ui");
+      expect(label).not.toHaveClass("md:text-sm");
+    }
+    expect(screen.getByText("src/")).not.toHaveClass("font-mono");
+    expect(screen.getByText("README.md")).not.toHaveClass("font-mono");
+  });
+
+  it("animates child rows before removing them on collapse", () => {
+    vi.useFakeTimers();
+    renderTree({
+      files: [file("src/app.ts")],
+      conversationId: "conv_folder_animation",
+    });
+
+    const folderRow = screen.getByRole("button", { name: "src/" });
+    fireEvent.click(folderRow);
+
+    expect(folderRow).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("app.ts").closest("[data-tree-motion]")).toHaveAttribute(
+      "data-tree-motion",
+      "exit",
+    );
+
+    act(() => vi.advanceTimersByTime(160));
+    expect(screen.queryByText("app.ts")).toBeNull();
+
+    fireEvent.click(folderRow);
+    expect(screen.getByText("app.ts").closest("[data-tree-motion]")).toHaveAttribute(
+      "data-tree-motion",
+      "enter",
+    );
+  });
+});
+
+describe("FolderTree double-click navigation", () => {
+  it("expands on single click and re-roots on double click", () => {
     const onNavigateDir = vi.fn();
     renderTree({ files: [dir("src"), file("README.md")], onNavigateDir });
 
     const folder = screen.getByRole("button", { name: "src/" });
 
     fireEvent.click(folder);
-    expect(onNavigateDir, "a single click must not re-root").not.toHaveBeenCalled();
+    expect(onNavigateDir).not.toHaveBeenCalled();
 
     fireEvent.doubleClick(folder);
     expect(onNavigateDir).toHaveBeenCalledWith("src");
   });
 
-  it("passes the path relative to the browsed root, not the bare folder name", () => {
-    // Nested rows must report their full path from the current root, or
-    // re-rooting from a deep row would land in the wrong directory.
+  it("passes a nested folder's relative path on double click", () => {
     const onNavigateDir = vi.fn();
     renderTree({ files: [file("src/components/Button.tsx")], onNavigateDir });
 
     fireEvent.doubleClick(screen.getByRole("button", { name: "components/" }));
 
     expect(onNavigateDir).toHaveBeenCalledWith("src/components");
-  });
-
-  it("leaves folders inert when no navigate handler is supplied", () => {
-    // The prop is optional; without it the row must still expand normally.
-    renderTree({ files: [dir("src")] });
-
-    const folder = screen.getByRole("button", { name: "src/" });
-    fireEvent.doubleClick(folder);
-
-    expect(folder).toBeInTheDocument();
   });
 });
 

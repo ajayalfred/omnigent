@@ -238,16 +238,18 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.useRealTimers();
 });
 
 describe("FilesPanel working folder directory", () => {
-  it("shows the directory basename below the Working folder label", () => {
+  it("shows the directory basename with the former heading typography", () => {
     renderPanel({
       conversationId: "conv_wdir_posix",
       files: [],
       workingDir: "/home/user/my-project",
     });
-    expect(screen.getByText("my-project")).toBeInTheDocument();
+    expect(screen.getByText("my-project")).toHaveClass("font-medium", "text-ui");
+    expect(screen.getByText("my-project")).not.toHaveClass("font-mono");
   });
 
   it("does not use the native title tooltip because the custom tooltip shows the full path", () => {
@@ -271,23 +273,21 @@ describe("FilesPanel working folder directory", () => {
 
   it("does not render a directory label when workingDir is null", () => {
     renderPanel({ conversationId: "conv_wdir_null", files: [] });
-    // "Working folder" label is present but no directory name span
-    expect(screen.getByText("Working folder")).toBeInTheDocument();
+    expect(screen.queryByText("Working folder")).toBeNull();
     // There should be no element with a title that looks like a path
     expect(screen.queryByTitle("/")).toBeNull();
   });
 });
 
-describe("FilesPanel working folder header role", () => {
-  // The scope heading is static in every mode — it is not a collapse toggle.
-  // Collapsing was removed: the panel's content is the whole point of the
-  // panel, so there is nothing to collapse to. The content is always visible.
-  it("renders the header as a static label (no toggle button) in the standalone card", () => {
+describe("FilesPanel header role", () => {
+  it("omits the redundant Working folder heading in the standalone card", () => {
     renderPanel({ conversationId: "conv_header_card", files: [] });
-    expect(screen.queryByRole("button", { name: /working folder/i })).toBeNull();
-    expect(screen.getByRole("heading", { name: "Working folder" })).toBeInTheDocument();
+    expect(screen.queryByText("Working folder")).toBeNull();
     // Content is always shown — the tree search box is part of it.
-    expect(screen.getByRole("searchbox", { name: "Search all files" })).toBeInTheDocument();
+    const search = screen.getByRole("searchbox", { name: "Search all files" });
+    expect(search).toBeInTheDocument();
+    expect(search.parentElement).toHaveClass("rounded-lg");
+    expect(search.parentElement).not.toHaveClass("rounded-full");
   });
 
   it("labels the changed-files scope with a Changes heading", () => {
@@ -297,7 +297,7 @@ describe("FilesPanel working folder header role", () => {
     expect(screen.getByRole("searchbox", { name: "Search changed files" })).toBeInTheDocument();
   });
 
-  it("renders the header as a static label (no toggle button) in frameless (inline rail) mode", () => {
+  it("uses the breadcrumb as the frameless inline-rail header", () => {
     useAllFilesMock.mockReturnValue(allFilesResult([]));
     useChangedFilesMock.mockReturnValue(changedFilesResult([]));
     useDirectoryMock.mockReturnValue(directoryResult());
@@ -325,16 +325,14 @@ describe("FilesPanel working folder header role", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByRole("button", { name: /working folder/i })).toBeNull();
-    expect(screen.getByRole("heading", { name: "Working folder" })).toBeInTheDocument();
+    expect(screen.queryByText("Working folder")).toBeNull();
+    expect(screen.getByText("workspace")).toHaveClass("font-medium", "text-ui");
     expect(screen.getByRole("searchbox", { name: "Search all files" })).toBeInTheDocument();
   });
 
-  it("renders a static label header with a Close button in the drawer", () => {
+  it("keeps the Close button in the drawer without a redundant heading", () => {
     renderPanel({ conversationId: "conv_header_drawer", files: [], onClose: vi.fn() });
-    // The drawer adds an X close button; the title is a plain label everywhere.
-    expect(screen.queryByRole("button", { name: /working folder/i })).toBeNull();
-    expect(screen.getByRole("heading", { name: "Working folder" })).toBeInTheDocument();
+    expect(screen.queryByText("Working folder")).toBeNull();
     expect(screen.getByRole("button", { name: "Close files" })).toBeInTheDocument();
   });
 });
@@ -345,6 +343,7 @@ describe("FilesPanel hidden-files toggle icon", () => {
   it("shows a plain eye while hidden files are visible", () => {
     renderPanel({ conversationId: "conv_eye_on", files: [], showHidden: true });
     const toggle = screen.getByRole("button", { name: "Hide hidden files" });
+    expect(toggle).toHaveAttribute("data-size", "icon-sm");
     expect(toggle.querySelector(".lucide-eye")).not.toBeNull();
     expect(toggle.querySelector(".lucide-eye-off")).toBeNull();
   });
@@ -563,6 +562,7 @@ describe("FilesPanel changed files search", () => {
   });
 
   it("preserves inline folder expansion state when opening the drawer", () => {
+    vi.useFakeTimers();
     const files = [file("docs/Guide.md"), file("src/App.tsx")];
     useAllFilesMock.mockReturnValue(allFilesResult(files));
     useChangedFilesMock.mockReturnValue(changedFilesResult());
@@ -621,6 +621,7 @@ describe("FilesPanel changed files search", () => {
 
     fireEvent.click(srcFolder);
     expect(srcFolder).toHaveAttribute("aria-expanded", "false");
+    act(() => vi.advanceTimersByTime(160));
     expect(screen.queryByText("App.tsx")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "open drawer" }));
@@ -988,9 +989,9 @@ describe("FilesPanel tree (Explore) search", () => {
     expect(folderRow.style.paddingLeft).toBe(fileRow.style.paddingLeft);
     expect(folderRow.style.paddingLeft).toBe("8px");
 
-    // Minimal layout: folders show ONLY a chevron (no folder icon) before the
-    // name. The folder row should contain exactly one svg (the chevron).
-    expect(folderButton.querySelectorAll("svg")).toHaveLength(1);
+    // The folder state and hover chevron share one icon slot, so neither
+    // changes the name's indentation.
+    expect(folderButton.querySelectorAll("svg")).toHaveLength(2);
 
     // A nested file (App.tsx, depth 1) is indented one INDENT_STEP further and
     // draws a vertical indent-guide line marking its ancestor level.
@@ -1177,7 +1178,9 @@ describe("FilesPanel tree (Explore) search", () => {
     // Hidden by default — the toggle starts collapsed.
     expect(screen.queryByRole("textbox", { name: "files to include" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Show search filters" }));
+    const preferences = screen.getByRole("button", { name: "Show search filters" });
+    expect(preferences).toHaveAttribute("data-size", "icon-sm");
+    fireEvent.click(preferences);
 
     // Both glob inputs become visible after the toggle is opened.
     expect(screen.getByRole("textbox", { name: "files to include" })).toBeInTheDocument();
@@ -1320,7 +1323,19 @@ describe("FilesPanel sort control", () => {
       files: [file("a.txt")],
       flatView: false,
     });
-    expect(screen.getByRole("button", { name: /^Sort:/ })).toBeInTheDocument();
+    const sort = screen.getByRole("button", { name: /^Sort:/ });
+    expect(sort).toBeInTheDocument();
+    expect(sort).toHaveAttribute("data-size", "sm");
+    expect(sort).toHaveTextContent("Last edited");
+    expect(sort).not.toHaveTextContent("Sort:");
+    expect(sort.querySelector(".lucide-arrow-down-up")).not.toBeNull();
+    expect(sort.querySelector(".lucide-file-clock")).toBeNull();
+    const filter = screen.getByRole("button", { name: "Show search filters" });
+    expect(sort.compareDocumentPosition(filter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const visibility = screen.getByRole("button", { name: "Show hidden files" });
+    expect(
+      filter.compareDocumentPosition(visibility) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });
 
@@ -1453,12 +1468,14 @@ describe("FolderTree expanded state across conversation switches", () => {
   }
 
   it("re-syncs expanded folders when switching conversations without remounting", () => {
+    vi.useFakeTimers();
     const files = [file("src/App.tsx"), file("README.md")];
     const { view, tree } = renderTree("conv_tree_resync_a", files);
 
     // Collapse src/ in conversation A (expanded by default).
     expect(screen.getByText("App.tsx")).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: /src\// }));
+    act(() => vi.advanceTimersByTime(160));
     expect(screen.queryByText("App.tsx")).toBeNull();
 
     // Switch to conversation B in place: defaults apply, src/ is expanded.
@@ -1494,6 +1511,7 @@ describe("FilesPanel browse location", () => {
 
     expect(screen.queryByTestId("browse-location-path")).toBeNull();
     expect(screen.getByText("proj")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Go to parent folder" })).toBeDisabled();
   });
 
   it("shows the full path, clickable, when the session is unconfined", () => {
@@ -1508,6 +1526,27 @@ describe("FilesPanel browse location", () => {
     // tell you where you are before you decide to go elsewhere.
     const trigger = screen.getByTestId("browse-location-path");
     expect(trigger).toHaveTextContent("/home/user/proj");
+    expect(trigger).toHaveClass("cursor-pointer", "hover:bg-muted");
+    expect(trigger).not.toHaveClass("hover:bg-accent");
+  });
+
+  it("navigates up one level with an icon-sm back button", () => {
+    renderPanel({
+      conversationId: "conv_parent_folder",
+      files: [],
+      workingDir: "/home/user/proj",
+      reachable: UNCONFINED,
+    });
+
+    const back = screen.getByRole("button", { name: "Go to parent folder" });
+    expect(back).toHaveAttribute("data-size", "icon-sm");
+    fireEvent.click(back);
+
+    expect(useAllFilesMock).toHaveBeenLastCalledWith(
+      "conv_parent_folder",
+      expect.anything(),
+      "/home/user",
+    );
   });
 
   it("opens a file at an absolute browse location by its absolute path", () => {
@@ -1768,7 +1807,7 @@ describe("FilesPanel header copy path", () => {
 });
 
 describe("FilesPanel double-click navigation", () => {
-  it("re-roots onto a double-clicked folder and asks the server RELATIVELY", () => {
+  it("re-roots from a double-clicked folder and asks the server relatively", () => {
     // The wire form is the point. A subfolder of the workspace must be
     // requested relative, because the server authorizes an absolute location
     // at OWNER level -- sending "/home/user/proj/src" would 403 every

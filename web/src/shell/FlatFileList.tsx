@@ -1,4 +1,3 @@
-import { FileIcon } from "lucide-react";
 import { RunnerOfflineError, type WorkspaceChangedFile } from "@/hooks/useWorkspaceChangedFiles";
 import { RunnerAsleepHint } from "./RunnerAsleepHint";
 import { cn } from "@/lib/utils";
@@ -12,6 +11,7 @@ import {
 import { CopyPathButton } from "./CopyPathButton";
 import { FileDownloadButton } from "./FileDownloadButton";
 import { useCursorTooltip } from "./useCursorTooltip";
+import { WorkspaceFileIcon } from "./WorkspaceFileIcon";
 
 export type { ChangedSort } from "@/lib/changedSort";
 import type { ChangedSort } from "@/lib/changedSort";
@@ -87,7 +87,7 @@ function FileListItem({
     <li>
       <div
         className={cn(
-          "group flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1",
+          "group flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-0.5",
           isDeleted ? "opacity-50" : "hover:bg-muted",
         )}
       >
@@ -100,11 +100,8 @@ function FileListItem({
           onClick={() => !isDeleted && onFileSelect(file.path)}
           disabled={isDeleted}
         >
-          <FileIcon className="size-3.5 shrink-0 self-center text-muted-foreground" />
-          <span
-            className={cn("truncate font-mono text-ui md:text-sm", isDeleted && "line-through")}
-            {...handlers}
-          >
+          <WorkspaceFileIcon path={file.path} className="self-center" />
+          <span className={cn("truncate text-ui", isDeleted && "line-through")} {...handlers}>
             {file.name}
           </span>
           {dir && <span className="truncate text-muted-foreground text-sm">{dir}</span>}
