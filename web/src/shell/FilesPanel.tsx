@@ -467,9 +467,9 @@ export function FilesPanel({
       )}
     >
       {/* Header — single row: [workingDir] [copy] [close?] */}
-      <div className="flex shrink-0 items-center gap-[2px] px-2 py-2">
+      <div className="flex h-11 shrink-0 items-center gap-[2px] px-2">
         {flatView && <h2 className="shrink-0 font-medium text-ui">Changes</h2>}
-        {workingDir && workspaceRoot && (
+        {!flatView && workingDir && workspaceRoot && (
           <BrowseLocationBar
             current={workingDir}
             workspace={workspaceRoot}
@@ -498,8 +498,8 @@ export function FilesPanel({
             </Tooltip>
           </TooltipProvider>
         )}
-        <div className="ml-auto flex items-center gap-1">
-          {workingDir && (
+        <div className="ml-auto flex items-center gap-[2px]">
+          {!flatView && workingDir && (
             // Its own provider: the header has no TooltipProvider ancestor
             // (each control here brings one), unlike the file rows.
             <TooltipProvider>

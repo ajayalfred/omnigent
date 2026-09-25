@@ -499,6 +499,69 @@ describe("FolderTree directory search results", () => {
   });
 });
 
+describe("FolderTree change-status overlay", () => {
+  it("adds API-only created and deleted files to the tree with status badges", async () => {
+    lazyChildren.clear();
+    lazyChildren.set("src", [file("src/live.ts")]);
+    renderTree({
+      files: [dir("src")],
+      conversationId: "conv_change_overlay",
+      changedFiles: [
+        {
+          path: "new.ts",
+          name: "new.ts",
+          status: "created",
+          bytes: 12,
+          modified_at: null,
+          lines_added: null,
+          lines_removed: null,
+        },
+        {
+          path: "src/gone.ts",
+          name: "gone.ts",
+          status: "deleted",
+          bytes: null,
+          modified_at: null,
+          lines_added: null,
+          lines_removed: null,
+        },
+      ],
+    });
+
+    expect(screen.getByText("new.ts")).toHaveClass("text-green-500");
+    expect(screen.getByText("new.ts")).not.toHaveClass("font-semibold");
+    expect(screen.getByTitle("Added")).toHaveTextContent("A");
+
+    fireEvent.click(screen.getByRole("button", { name: "src/" }));
+    const deleted = await screen.findByText("gone.ts");
+    expect(deleted).toHaveClass("line-through");
+    expect(deleted).not.toHaveClass("text-destructive");
+    expect(deleted.closest("div.group")).toHaveClass("opacity-50");
+    expect(screen.getByTitle("Deleted")).toHaveTextContent("D");
+  });
+
+  it("matches workspace-root change paths after re-rooting into a subfolder", () => {
+    renderTree({
+      files: [file("app.ts")],
+      browseLocation: "src",
+      changedFiles: [
+        {
+          path: "src/app.ts",
+          name: "app.ts",
+          status: "modified",
+          bytes: 12,
+          modified_at: null,
+          lines_added: null,
+          lines_removed: null,
+        },
+      ],
+    });
+
+    expect(screen.getByText("app.ts")).toHaveClass("text-amber-500");
+    expect(screen.getByTitle("Modified")).toHaveTextContent("M");
+  });
+});
+
 describe("FolderTree nested lazy loading", () => {
   beforeEach(() => {
     lazyChildren.clear();

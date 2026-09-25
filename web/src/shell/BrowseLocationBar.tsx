@@ -1,4 +1,4 @@
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, FolderDotIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -68,8 +68,9 @@ export function BrowseLocationBar({
   if (!canRoam) {
     return (
       <TooltipProvider>
-        <span className="flex min-w-0 flex-1 items-center gap-1">
+        <span className="flex min-w-0 flex-1 items-center gap-[2px]">
           <ParentFolderButton parent={navigableParent} onNavigate={onNavigate} />
+          <WorkspaceRootButton current={current} workspace={workspace} onNavigate={onNavigate} />
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="inline-block min-w-0 flex-1 truncate font-medium text-ui">
@@ -85,8 +86,9 @@ export function BrowseLocationBar({
 
   return (
     <span className="flex min-w-0 flex-1 flex-col">
-      <span className="flex min-w-0 items-center gap-1">
+      <span className="flex min-w-0 items-center gap-[2px]">
         <ParentFolderButton parent={navigableParent} onNavigate={onNavigate} />
+        <WorkspaceRootButton current={current} workspace={workspace} onNavigate={onNavigate} />
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <button
@@ -116,6 +118,38 @@ export function BrowseLocationBar({
         </span>
       )}
     </span>
+  );
+}
+
+function WorkspaceRootButton({
+  current,
+  workspace,
+  onNavigate,
+}: {
+  current: string;
+  workspace: string;
+  onNavigate: (absolutePath: string) => void;
+}) {
+  if (current === workspace) return null;
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Back to working folder"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={() => onNavigate(workspace)}
+          >
+            <FolderDotIcon />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Back to working folder</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 

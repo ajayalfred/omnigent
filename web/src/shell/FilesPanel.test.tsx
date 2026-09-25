@@ -260,8 +260,10 @@ describe("FilesPanel working folder directory", () => {
       files: [],
       workingDir: "/home/user/my-project",
     });
-    expect(screen.getByText("my-project")).toHaveClass("font-medium", "text-ui");
-    expect(screen.getByText("my-project")).not.toHaveClass("font-mono");
+    const path = screen.getByText("my-project");
+    expect(path).toHaveClass("font-medium", "text-ui");
+    expect(path).not.toHaveClass("font-mono");
+    expect(screen.queryByRole("button", { name: "Back to working folder" })).toBeNull();
   });
 
   it("does not use the native title tooltip because the custom tooltip shows the full path", () => {
@@ -303,9 +305,20 @@ describe("FilesPanel header role", () => {
   });
 
   it("labels the changed-files scope with a Changes heading", () => {
-    renderPanel({ conversationId: "conv_header_changes", files: [], flatView: true });
-    expect(screen.getByRole("heading", { name: "Changes" })).toBeInTheDocument();
+    renderPanel({
+      conversationId: "conv_header_changes",
+      files: [],
+      flatView: true,
+      workingDir: "/home/user/proj",
+    });
+    const changesHeading = screen.getByRole("heading", { name: "Changes" });
+    expect(changesHeading).toBeInTheDocument();
+    expect(changesHeading.parentElement).toHaveClass("h-11");
     expect(screen.queryByRole("heading", { name: "Working folder" })).toBeNull();
+    expect(screen.queryByTestId("browse-location-path")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Go to parent folder" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Copy folder path: proj" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Refresh files" })).toBeInTheDocument();
     expect(screen.getByRole("searchbox", { name: "Search changed files" })).toBeInTheDocument();
   });
 
@@ -1611,6 +1624,14 @@ describe("FilesPanel browse location", () => {
       expect.anything(),
       "/etc",
     );
+
+    const reset = screen.getByRole("button", { name: "Back to working folder" });
+    expect(reset.compareDocumentPosition(screen.getByTestId("browse-location-path"))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    fireEvent.click(reset);
+    expect(useAllFilesMock).toHaveBeenLastCalledWith("conv_reroot", expect.anything(), "");
+    expect(screen.queryByRole("button", { name: "Back to working folder" })).toBeNull();
   });
 
   it("restores the browsed location across unmount/remount (file-viewer round trip)", () => {

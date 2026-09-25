@@ -1442,6 +1442,21 @@ aside[aria-label="Workspace"][data-maximized] {
   --message-highlight: color-mix(in oklch, var(--warning) 24%, transparent);
 }
 
+@keyframes user-message-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-user-message-enter {
+  animation: user-message-enter 300ms ease-out both;
+}
+
 /* File-tree children fade without animating geometry. Height or position
    transitions fight the virtualizer and make long lists visibly drift. */
 @keyframes file-tree-row-expand {
