@@ -6932,6 +6932,35 @@ def test_forwarder_sends_file_change_to_observer(
     ]
 
 
+@pytest.mark.parametrize("status", ["failed", "declined"])
+def test_forwarder_does_not_observe_unsuccessful_file_change(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, status: str
+) -> None:
+    """Failed or declined patches must not create phantom change records."""
+    (tmp_path / "tool_relay.json").write_text(
+        json.dumps({"url": "http://relay.local", "token": "relay-secret"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        codex_native_forwarder.urllib.request,
+        "urlopen",
+        lambda *_args, **_kwargs: pytest.fail("unsuccessful patch reached file observer"),
+    )
+
+    asyncio.run(
+        _replay_completed_item(
+            {
+                "type": "fileChange",
+                "id": f"call_patch_{status}",
+                "changes": [{"path": "/repo/not-applied.py", "kind": {"type": "add"}}],
+                "status": status,
+            },
+            lambda _request: httpx.Response(202, json={"queued": False}),
+            bridge_dir=tmp_path,
+        )
+    )
+
+
 def test_forwarder_posts_codex_web_search_tool_call() -> None:
     """
     A completed Codex ``webSearch`` becomes a web_search tool card.

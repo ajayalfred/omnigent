@@ -6467,6 +6467,8 @@ async def _observe_file_change(bridge_dir: Path | None, item: _JsonObject) -> No
     """Send a completed Codex fileChange through the runner's file observer."""
     if bridge_dir is None:
         return
+    if item.get("status") in {"failed", "declined"}:
+        return
     changes = item.get("changes")
     if not isinstance(changes, list):
         return

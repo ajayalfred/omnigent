@@ -31,8 +31,10 @@ vi.mock("./SubagentsPanel", () => ({
   SubagentsPanel: () => <div data-testid="subagents-stub" />,
 }));
 vi.mock("@/components/BrowserPane/BrowserPane", () => ({
-  BrowserPane: ({ conversationId }: { conversationId: string }) => (
-    <div data-testid="browser-pane-stub">{conversationId}</div>
+  BrowserPane: ({ conversationId, active }: { conversationId: string; active?: boolean }) => (
+    <div data-testid="browser-pane-stub" data-active={String(active)}>
+      {conversationId}
+    </div>
   ),
 }));
 // The rail terminal view mounts a real xterm/WebSocket; stub it to a marker
@@ -837,6 +839,12 @@ describe("WorkspacePanel browser tab", () => {
     expect(screen.getByTestId("browser-pane-stub")).toBeInTheDocument();
     // And the file scope views are not mounted in that branch.
     expect(screen.queryByTestId("files-panel-stub")).toBeNull();
+  });
+
+  it("deactivates the browser pane while the persistent rail is closed", () => {
+    renderWorkspace({ showBrowserTab: true, rightRailTab: "browser", open: false, inert: true });
+
+    expect(screen.getByTestId("browser-pane-stub")).toHaveAttribute("data-active", "false");
   });
 
   it("shows an error when a native browser close fails", async () => {

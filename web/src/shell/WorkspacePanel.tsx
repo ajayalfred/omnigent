@@ -1328,6 +1328,7 @@ function WorkspacePanelImpl({
               key={browsers.viewId}
               conversationId={browsers.viewId}
               agentBrowser={browsers.selected === null}
+              active={open}
               className="min-h-0 flex-1"
             />
           ) : rightRailTab === "github" && showGithubTab ? (
