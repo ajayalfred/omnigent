@@ -91,6 +91,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MenuItem } from "@/components/ui/menu-item";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { authenticatedFetch, getCurrentUserId, resolveIdentity } from "@/lib/identity";
 import { backgroundSessionTitlesRequestHeaders } from "@/lib/backgroundSessionTitlesPreferences";
@@ -144,6 +145,7 @@ import {
   WORKTREE_RADIO_SELECTOR_INPUT_CLASS,
   WORKTREE_RADIO_SELECTOR_ROW_CLASS,
   WorktreeRadioRow,
+  worktreeDisplayName,
 } from "./WorktreeRadioRow";
 import {
   initialPrefillState,
@@ -639,7 +641,7 @@ export function composerWorktreeHeaderState({
   if (!worktreesResolved) {
     return {
       repositoryLabel: selectedDirectoryLabel,
-      branchLabel: "Worktree",
+      branchLabel: "None",
       branchDescription: "Worktree status loading",
     };
   }
@@ -648,13 +650,13 @@ export function composerWorktreeHeaderState({
     if (selectedWorktree.detached || selectedWorktree.branch === null) {
       return {
         repositoryLabel,
-        branchLabel: "Detached HEAD",
+        branchLabel: worktreeDisplayName(selectedWorktree.path),
         branchDescription: `Existing detached worktree: ${selectedWorktree.path}`,
       };
     }
     return {
       repositoryLabel,
-      branchLabel: selectedWorktree.branch,
+      branchLabel: worktreeDisplayName(selectedWorktree.path),
       branchDescription: `Existing worktree branch: ${selectedWorktree.branch}`,
     };
   }
@@ -665,14 +667,14 @@ export function composerWorktreeHeaderState({
       : `main repository${selectedWorktree.branch ? ` branch: ${selectedWorktree.branch}` : ""}`;
     return {
       repositoryLabel,
-      branchLabel: "Choose",
+      branchLabel: "None",
       branchDescription: `Create or select a worktree from ${mainState}`,
     };
   }
 
   return {
     repositoryLabel,
-    branchLabel: "Worktree",
+    branchLabel: "None",
     branchDescription: "Create or select a worktree",
   };
 }
@@ -6089,7 +6091,7 @@ export function NewChatLandingScreen() {
                   )}
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui hover:bg-muted"
                     onClick={() => {
                       setWorkspacePopoverOpen(false);
                       setWorkspacePickerInitialPath(
@@ -6150,34 +6152,36 @@ export function NewChatLandingScreen() {
                           role="radiogroup"
                           aria-label="Choose a worktree"
                         >
-                          <label
-                            className={cn(
-                              "flex cursor-pointer items-center gap-2 transition-colors hover:bg-muted focus-within:bg-muted",
-                              WORKTREE_RADIO_SELECTOR_ROW_CLASS,
-                              branchName.trim() === "" && activeWorktree === null && "bg-muted",
-                            )}
-                            data-testid="new-chat-landing-no-worktree-option"
+                          <MenuItem
+                            asChild
+                            active={branchName.trim() === "" && activeWorktree === null}
+                            density="compact"
                           >
-                            <input
-                              type="radio"
-                              name="new-chat-existing-worktree"
-                              checked={branchName.trim() === "" && activeWorktree === null}
-                              onChange={() => {
-                                workspaceFromConfigRef.current = false;
-                                if (activeWorktree !== null && mainWorktree !== null) {
-                                  setWorkspace(mainWorktree.path);
-                                }
-                                setBranchName("");
-                                setAutoSeededBranch("");
-                                setWorktreePopoverOpen(false);
-                              }}
-                              className={cn(
-                                "size-4 shrink-0 accent-primary",
-                                WORKTREE_RADIO_SELECTOR_INPUT_CLASS,
-                              )}
-                            />
-                            <span className="font-medium text-foreground">No worktree</span>
-                          </label>
+                            <label
+                              className={cn("cursor-pointer", WORKTREE_RADIO_SELECTOR_ROW_CLASS)}
+                              data-testid="new-chat-landing-no-worktree-option"
+                            >
+                              <input
+                                type="radio"
+                                name="new-chat-existing-worktree"
+                                checked={branchName.trim() === "" && activeWorktree === null}
+                                onChange={() => {
+                                  workspaceFromConfigRef.current = false;
+                                  if (activeWorktree !== null && mainWorktree !== null) {
+                                    setWorkspace(mainWorktree.path);
+                                  }
+                                  setBranchName("");
+                                  setAutoSeededBranch("");
+                                  setWorktreePopoverOpen(false);
+                                }}
+                                className={cn(
+                                  "size-4 shrink-0 accent-primary",
+                                  WORKTREE_RADIO_SELECTOR_INPUT_CLASS,
+                                )}
+                              />
+                              <span className="font-normal text-foreground">No worktree</span>
+                            </label>
+                          </MenuItem>
                           {linkedWorktrees.length > 0 && (
                             <>
                               <div className="my-1 h-px shrink-0 bg-border" />
@@ -6186,13 +6190,13 @@ export function NewChatLandingScreen() {
                                 data-testid="new-chat-landing-worktree-section"
                               >
                                 <span
-                                  className="shrink-0 px-2 py-1 text-sm leading-5 text-muted-foreground"
+                                  className="shrink-0 px-2 py-1 text-xs font-medium leading-4 text-muted-foreground"
                                   data-testid="new-chat-landing-worktree-heading"
                                 >
                                   Worktrees
                                 </span>
                                 <div
-                                  className="flex min-h-0 max-h-80 flex-1 flex-col overflow-y-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent"
+                                  className="flex min-h-0 max-h-80 flex-1 flex-col gap-px overflow-y-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent"
                                   data-testid="new-chat-landing-worktree-dropdown"
                                 >
                                   <TooltipProvider>

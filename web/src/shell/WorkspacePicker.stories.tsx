@@ -78,7 +78,7 @@ const meta = {
           );
         }}
       >
-        <div className="flex h-[min(520px,calc(100dvh-2rem))] w-[min(800px,calc(100vw-2rem))] justify-center">
+        <div className="flex h-[min(600px,calc(100dvh-2rem))] w-[min(800px,calc(100vw-2rem))] justify-center">
           <Story />
         </div>
       </StoryQueryRouter>
