@@ -589,11 +589,7 @@ describe("WorkspacePicker live selection (onNavigate)", () => {
     // The live-update callers drop the explicit commit button entirely.
     render(<WorkspacePicker hostId="host_1" initialPath="/x" onNavigate={vi.fn()} />);
     expect(screen.queryByTestId("workspace-picker-select")).toBeNull();
-    expect(screen.getByTestId("workspace-picker-entry-src")).toHaveClass(
-      "min-h-11",
-      "px-5",
-      "py-2",
-    );
+    expect(screen.getByTestId("workspace-picker-entry-src")).toHaveClass("h-7", "px-2", "py-[3px]");
   });
 });
 
@@ -720,6 +716,13 @@ describe("WorkspacePicker modal actions", () => {
       "px-2.5",
     );
     expect(screen.getByTestId("workspace-picker-search-icon")).toHaveClass("size-4");
+    const newFolder = screen.getByTestId("workspace-picker-new-folder");
+    const hiddenToggle = screen.getByTestId("workspace-picker-show-hidden");
+    expect(screen.getByTestId("workspace-picker-header")).toContainElement(newFolder);
+    expect(newFolder.compareDocumentPosition(hiddenToggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(screen.getByTestId("workspace-picker-search-row")).not.toContainElement(newFolder);
     for (const testId of [
       "workspace-picker-up",
       "workspace-picker-new-folder",
@@ -936,21 +939,21 @@ describe("WorkspacePicker modal actions", () => {
     expect(useHostWorktreesMock).toHaveBeenCalledWith("host_1", windowsPath);
   });
 
-  it("keeps compact callers single-pane and uses the fixed viewport-safe modal frame", () => {
+  it("uses the same fixed frame and compact rows regardless of callback shape", () => {
     const { rerender } = render(
       <WorkspacePicker hostId="host_1" initialPath="/Users/corey/repo" onNavigate={vi.fn()} />,
     );
 
     expect(screen.queryByTestId("workspace-picker-worktrees")).toBeNull();
-    expect(screen.getByTestId("workspace-picker").className).toContain("max-h-80");
+    const liveClass = screen.getByTestId("workspace-picker").className;
+    expect(liveClass).toContain("h-[min(600px,calc(100dvh-4rem))]");
+    expect(liveClass).toContain("w-[min(800px,calc(100vw-2rem))]");
 
     rerender(
       <WorkspacePicker hostId="host_1" initialPath="/Users/corey/repo" onSelect={vi.fn()} />,
     );
     const modalClass = screen.getByTestId("workspace-picker").className;
-    expect(modalClass).toContain("h-[min(600px,calc(100dvh-4rem))]");
-    expect(modalClass).toContain("w-[min(800px,calc(100vw-2rem))]");
-    expect(modalClass).not.toContain("min-h-80");
+    expect(modalClass).toBe(liveClass);
   });
 
   it("keeps full-dialog geometry invariant as worktree states change", async () => {

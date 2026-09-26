@@ -56,13 +56,7 @@ import {
   TriangleAlertIcon,
   XIcon,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,7 +133,8 @@ import { useIsCoarsePointer } from "@/hooks/useIsCoarsePointer";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import { useModelPickerHotkey } from "@/hooks/useModelPickerHotkey";
 import { CliCommandBlock, renderTextWithInlineCode } from "./CliCommandBlock";
-import { WorkspacePicker, isNavigablePath } from "./WorkspacePicker";
+import { isNavigablePath } from "./WorkspacePicker";
+import { WorkspacePickerDialog } from "./WorkspacePickerDialog";
 import { RecentWorkspaceList } from "./RecentWorkspaceList";
 import {
   WORKTREE_RADIO_SELECTOR_INPUT_CLASS,
@@ -6091,24 +6086,26 @@ export function NewChatLandingScreen() {
                       <div className="my-1 h-px bg-border" />
                     </>
                   )}
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui hover:bg-muted"
-                    onClick={() => {
-                      setWorkspacePopoverOpen(false);
-                      setWorkspacePickerInitialPath(
-                        isNavigablePath(workspaceTrimmed) ? workspaceTrimmed : undefined,
-                      );
-                      setWorkspacePickerOpen(true);
-                    }}
-                    data-testid="new-chat-landing-workspace-open-folder"
-                  >
-                    <FolderOpenIcon
-                      className="size-4 shrink-0 text-muted-foreground"
-                      data-testid="new-chat-landing-workspace-open-folder-icon"
-                    />
-                    Open folder
-                  </button>
+                  <MenuItem asChild density="compact">
+                    <button
+                      type="button"
+                      className="w-full text-left"
+                      onClick={() => {
+                        setWorkspacePopoverOpen(false);
+                        setWorkspacePickerInitialPath(
+                          isNavigablePath(workspaceTrimmed) ? workspaceTrimmed : undefined,
+                        );
+                        setWorkspacePickerOpen(true);
+                      }}
+                      data-testid="new-chat-landing-workspace-open-folder"
+                    >
+                      <FolderOpenIcon
+                        className="size-4 shrink-0 text-muted-foreground"
+                        data-testid="new-chat-landing-workspace-open-folder-icon"
+                      />
+                      Open folder
+                    </button>
+                  </MenuItem>
                 </PopoverContent>
               </Popover>
               {/* Worktree selection stays a separate real action from the directory picker. */}
@@ -6794,34 +6791,24 @@ export function NewChatLandingScreen() {
               }}
             />
           </form>
-          <Dialog open={workspacePickerOpen} onOpenChange={setWorkspacePickerOpen}>
-            <DialogContent
-              showCloseButton={false}
-              className="max-w-[min(64rem,calc(100vw-2rem))] border-0 bg-transparent p-0 shadow-none sm:max-w-[min(64rem,calc(100vw-2rem))]"
-            >
-              <DialogHeader className="sr-only">
-                <DialogTitle>Select working directory</DialogTitle>
-                <DialogDescription>Choose a folder for the new session.</DialogDescription>
-              </DialogHeader>
-              <WorkspacePicker
-                hostId={selectedHostId}
-                initialPath={workspacePickerInitialPath}
-                onSelect={(path) => {
-                  workspaceFromConfigRef.current = false;
-                  setWorkspace(path);
-                  addRecent(path);
-                  setWorkspacePickerOpen(false);
-                }}
-                onClose={() => setWorkspacePickerOpen(false)}
-                occupancyForPath={
-                  !shouldCreateWorktree
-                    ? (absolutePath) =>
-                        occupancyByDir.get(normalizeWorkspacePath(absolutePath) ?? "") ?? 0
-                    : undefined
-                }
-              />
-            </DialogContent>
-          </Dialog>
+          <WorkspacePickerDialog
+            open={workspacePickerOpen}
+            onOpenChange={setWorkspacePickerOpen}
+            hostId={selectedHostId}
+            initialPath={workspacePickerInitialPath}
+            description="Choose a folder for the new session."
+            onConfirm={(path) => {
+              workspaceFromConfigRef.current = false;
+              setWorkspace(path);
+              addRecent(path);
+            }}
+            occupancyForPath={
+              !shouldCreateWorktree
+                ? (absolutePath) =>
+                    occupancyByDir.get(normalizeWorkspacePath(absolutePath) ?? "") ?? 0
+                : undefined
+            }
+          />
         </div>
         <div className="mt-1 flex w-full flex-col gap-1" data-testid="new-chat-landing-notices">
           {supportsAgySkipPermissions &&

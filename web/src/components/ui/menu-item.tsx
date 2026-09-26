@@ -27,10 +27,11 @@ export function MenuItem({
       data-density={density}
       data-active={active || undefined}
       className={cn(
-        "relative flex min-w-0 cursor-default items-center gap-2 rounded-md text-ui outline-hidden select-none transition-colors",
+        "relative flex min-w-0 items-center gap-2 rounded-md text-ui outline-hidden select-none transition-colors",
         density === "default" && "px-1.5 py-1",
         density === "compact" && "h-7 px-2 py-[3px] leading-4",
-        interactive && "hover:bg-muted focus:bg-muted",
+        interactive && "cursor-pointer hover:bg-muted focus:bg-muted",
+        !interactive && "cursor-default",
         active && "bg-muted",
         className,
       )}

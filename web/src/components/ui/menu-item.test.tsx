@@ -18,6 +18,7 @@ describe("MenuItem", () => {
       "px-2",
       "py-[3px]",
       "text-ui",
+      "cursor-pointer",
       "hover:bg-muted",
       "bg-muted",
     );
@@ -35,6 +36,10 @@ describe("MenuItem", () => {
       "data-slot",
       "menu-item",
     );
-    expect(screen.getByRole("button", { name: "Choose" })).toHaveClass("h-7", "hover:bg-muted");
+    expect(screen.getByRole("button", { name: "Choose" })).toHaveClass(
+      "h-7",
+      "cursor-pointer",
+      "hover:bg-muted",
+    );
   });
 });

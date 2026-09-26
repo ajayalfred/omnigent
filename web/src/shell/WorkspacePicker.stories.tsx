@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { userEvent, within } from "storybook/test";
 import { StoryQueryRouter } from "@/storybook/StoryProviders";
-import { WorkspacePicker } from "./WorkspacePicker";
+import { WorkspacePickerDialog } from "./WorkspacePickerDialog";
 import {
   seedFilesystem,
   storyDirectory,
@@ -20,14 +20,15 @@ const projectEntries = [
 ];
 
 const meta = {
-  title: "Components/Workspace/WorkspacePicker",
-  component: WorkspacePicker,
+  title: "Components/Workspace/WorkspacePickerDialog",
+  component: WorkspacePickerDialog,
   tags: ["visual-snapshot"],
   args: {
+    open: true,
+    onOpenChange: () => undefined,
     hostId: workspaceStoryHost,
     initialPath: workspaceStoryProjects,
-    onSelect: () => undefined,
-    onClose: () => undefined,
+    onConfirm: () => undefined,
   },
   decorators: [
     (Story, context) => (
@@ -78,20 +79,17 @@ const meta = {
           );
         }}
       >
-        <div className="flex h-[min(600px,calc(100dvh-2rem))] w-[min(800px,calc(100vw-2rem))] justify-center">
-          <Story />
-        </div>
+        <Story />
       </StoryQueryRouter>
     ),
   ],
-} satisfies Meta<typeof WorkspacePicker>;
+} satisfies Meta<typeof WorkspacePickerDialog>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const PopulatedWithConflict: Story = {
   args: {
-    onClose: () => undefined,
     workspacePath: `${workspaceStoryProjects}/app`,
     occupancyForPath: (path) => (path === workspaceStoryProjects ? 2 : 0),
   },
@@ -109,21 +107,6 @@ export const LinkedWorktreeSelected: Story = {
       within(canvasElement).getByRole("radio", { name: "Use worktree command-palette" }),
     );
   },
-};
-
-export const CompactEmbedded: Story = {
-  args: {
-    onSelect: undefined,
-    onClose: undefined,
-    onNavigate: () => undefined,
-  },
-  decorators: [
-    (Story) => (
-      <div className="w-[min(28rem,calc(100vw-2rem))]">
-        <Story />
-      </div>
-    ),
-  ],
 };
 
 export const TypedFilter: Story = {

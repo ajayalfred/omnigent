@@ -403,8 +403,8 @@ interface WorkspacePickerProps {
  * controls, while a dedicated search row filters the current directory.
  * Clicking a folder navigates into it; files stay visible but disabled because
  * workspaces must be directories. Commit-style callers get the persistent
- * Cancel / Confirm footer, while live ``onNavigate`` callers retain a
- * compact popover height and no commit actions.
+ * Cancel / Confirm footer. The picker always uses the canonical full-frame
+ * geometry; live ``onNavigate`` remains available only for primitive tests.
  *
  * @param hostId Host whose filesystem to browse.
  * @param onSelect Fired with the current directory on "Confirm".
@@ -701,19 +701,11 @@ export function WorkspacePicker({
 
   return (
     <div
-      className={cn(
-        "flex min-h-0 flex-col overflow-hidden border border-border bg-background",
-        hasCommitActions
-          ? "h-[min(600px,calc(100dvh-4rem))] w-[min(800px,calc(100vw-2rem))] max-h-full justify-self-center rounded-[20px] shadow-xl"
-          : "max-h-80 rounded-md",
-      )}
+      className="flex h-[min(600px,calc(100dvh-4rem))] max-h-full min-h-0 w-[min(800px,calc(100vw-2rem))] flex-col justify-self-center overflow-hidden rounded-[20px] border border-border bg-background shadow-xl"
       data-testid="workspace-picker"
     >
       <div
-        className={cn(
-          "flex min-h-14 shrink-0 items-center gap-1 border-b px-4 py-2",
-          hasCommitActions && "h-12 min-h-12 px-3 py-0",
-        )}
+        className="flex h-12 min-h-12 shrink-0 items-center gap-1 border-b px-3 py-0"
         data-testid="workspace-picker-header"
       >
         <PickerIconButton
@@ -732,10 +724,7 @@ export function WorkspacePicker({
             testId="workspace-picker-workspace"
           />
         )}
-        <div
-          className={cn("min-w-0 flex-1", hasCommitActions ? "px-1" : "px-2")}
-          data-testid="workspace-picker-breadcrumbs"
-        >
+        <div className="min-w-0 flex-1 px-1" data-testid="workspace-picker-breadcrumbs">
           {!pathEditing && (
             <div
               className={cn(
@@ -815,15 +804,13 @@ export function WorkspacePicker({
             data-testid="workspace-picker-path-input"
           />
         </div>
-        {showGitDialog && (
-          <PickerIconButton
-            label="New folder"
-            icon={<FolderPlusIcon className="size-4" />}
-            onClick={openNewFolder}
-            disabled={!canCreateFolder}
-            testId="workspace-picker-new-folder"
-          />
-        )}
+        <PickerIconButton
+          label="New folder"
+          icon={<FolderPlusIcon className="size-4" />}
+          onClick={openNewFolder}
+          disabled={!canCreateFolder}
+          testId="workspace-picker-new-folder"
+        />
         <PickerIconButton
           label={showHidden ? "Hide hidden files" : "Show hidden files"}
           icon={
@@ -856,18 +843,11 @@ export function WorkspacePicker({
       >
         <div className="flex min-h-0 min-w-0 flex-col">
           <div
-            className={cn(
-              "flex min-h-12 shrink-0 items-center gap-2 border-b px-4",
-              hasCommitActions && "border-b-0 px-2 py-2",
-            )}
+            className="flex min-h-12 shrink-0 items-center gap-2 border-b-0 px-2 py-2"
             data-testid="workspace-picker-search-row"
           >
             <div
-              className={cn(
-                "flex min-w-0 flex-1 items-center gap-2",
-                hasCommitActions &&
-                  "h-8 rounded-lg border border-input bg-transparent px-2.5 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30",
-              )}
+              className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-transparent px-2.5 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30"
               data-testid="workspace-picker-search-field"
             >
               <SearchIcon
@@ -889,22 +869,10 @@ export function WorkspacePicker({
                 aria-label="Search folders and files"
                 autoComplete="off"
                 spellCheck={false}
-                className={cn(
-                  "min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground",
-                  hasCommitActions && "text-ui",
-                )}
+                className="min-w-0 flex-1 bg-transparent text-ui text-foreground outline-none placeholder:text-muted-foreground"
                 data-testid="workspace-picker-search-input"
               />
             </div>
-            {!showGitDialog && (
-              <PickerIconButton
-                label="New folder"
-                icon={<FolderPlusIcon className="size-4.5" />}
-                onClick={openNewFolder}
-                disabled={!canCreateFolder}
-                testId="workspace-picker-new-folder"
-              />
-            )}
           </div>
           {newFolderName !== null && (
             <div
@@ -991,8 +959,7 @@ export function WorkspacePicker({
           )}
           <div
             className={cn(
-              "min-h-0 flex-1 overflow-y-auto py-2",
-              hasCommitActions && "space-y-px px-2",
+              "min-h-0 flex-1 space-y-px overflow-y-auto px-2 py-2",
               showGitDialog && "pt-0 pb-3",
             )}
             aria-busy={navigationPending || undefined}
@@ -1025,7 +992,7 @@ export function WorkspacePicker({
                   key={entry.path}
                   entry={entry}
                   onOpen={navigateTo}
-                  variant={hasCommitActions ? "compact" : "default"}
+                  variant="compact"
                 />
               ))}
             {!navigationPending && data?.truncated && (
@@ -1129,10 +1096,7 @@ export function WorkspacePicker({
       </div>
       {hasCommitActions && (
         <div
-          className={cn(
-            "flex min-h-16 shrink-0 items-center justify-end gap-2 border-t px-5 py-3",
-            hasCommitActions && "min-h-16 px-5 py-2",
-          )}
+          className="flex min-h-16 shrink-0 items-center justify-end gap-2 border-t px-5 py-2"
           data-testid="workspace-picker-footer"
         >
           {onClose && (
