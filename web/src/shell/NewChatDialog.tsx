@@ -5782,9 +5782,11 @@ export function NewChatLandingScreen() {
           : `Working directory: ${visibleWorkspace || "Not selected"}`
       }
       title={
-        noExecutionTargetSelected
-          ? "No host selected"
-          : visibleWorkspace || "Working directory not selected"
+        workspacePopoverOpen
+          ? undefined
+          : noExecutionTargetSelected
+            ? "No host selected"
+            : visibleWorkspace || "Working directory not selected"
       }
       disabled={noExecutionTargetSelected || workspaceLoading}
       aria-busy={workspaceLoading || undefined}
@@ -6127,11 +6129,13 @@ export function NewChatLandingScreen() {
                             : visibleWorktreeHeader.branchDescription
                         }
                         title={
-                          noExecutionTargetSelected
-                            ? "No host selected"
-                            : workspaceLoading || worktreeControlAvailable
-                              ? visibleWorktreeHeader.branchDescription
-                              : "Choose a Git working directory to use worktrees"
+                          worktreePopoverOpen
+                            ? undefined
+                            : noExecutionTargetSelected
+                              ? "No host selected"
+                              : workspaceLoading || worktreeControlAvailable
+                                ? visibleWorktreeHeader.branchDescription
+                                : "Choose a Git working directory to use worktrees"
                         }
                         disabled={
                           noExecutionTargetSelected || workspaceLoading || !worktreeControlAvailable

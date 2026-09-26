@@ -144,12 +144,10 @@ describe("WorktreeRadioRow", () => {
       "leading-4",
       "bg-muted",
     );
-    expect(screen.getByTestId("worktree-row")).toHaveClass(
-      "hover:bg-muted",
-      "focus-within:bg-muted",
-    );
+    expect(screen.getByTestId("worktree-row")).toHaveClass("hover:bg-muted");
     expect(screen.getByTestId("worktree-row")).not.toHaveClass(
       "hover:bg-muted/50",
+      "focus-within:bg-muted",
       "focus-within:ring-1",
     );
     expect(screen.getByRole("radio")).toHaveClass("size-4", "appearance-none", "rounded-full");

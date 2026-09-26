@@ -4594,9 +4594,11 @@ describe("NewChatLandingScreen", () => {
 
     fireEvent.click(workspaceTrigger);
     expect(screen.getByTestId("new-chat-landing-workspace-open-folder")).toBeVisible();
+    expect(workspaceTrigger).not.toHaveAttribute("title");
 
     fireEvent.click(worktreeTrigger);
     expect(await screen.findByTestId("new-chat-landing-branch-input")).toBeVisible();
+    expect(worktreeTrigger).not.toHaveAttribute("title");
     await waitFor(() =>
       expect(screen.queryByTestId("new-chat-landing-workspace-open-folder")).toBeNull(),
     );
@@ -4604,11 +4606,13 @@ describe("NewChatLandingScreen", () => {
     closeMenu();
     await waitFor(() => expect(screen.queryByTestId("new-chat-landing-branch-input")).toBeNull());
     expect(worktreeTrigger).toHaveFocus();
+    expect(worktreeTrigger).toHaveAttribute("title");
 
     fireEvent.click(worktreeTrigger);
     expect(await screen.findByTestId("new-chat-landing-branch-input")).toBeVisible();
     fireEvent.click(workspaceTrigger);
     expect(screen.getByTestId("new-chat-landing-workspace-open-folder")).toBeVisible();
+    expect(workspaceTrigger).not.toHaveAttribute("title");
     await waitFor(() => expect(screen.queryByTestId("new-chat-landing-branch-input")).toBeNull());
 
     closeMenu();
@@ -6529,7 +6533,7 @@ describe("NewChatLandingScreen", () => {
     fireEvent.change(screen.getByTestId("new-chat-landing-branch-input"), {
       target: { value: "feature/from-detached" },
     });
-    expect(worktreeTrigger).toHaveAttribute("title", "New worktree branch: feature/from-detached");
+    expect(worktreeTrigger).not.toHaveAttribute("title");
 
     fireEvent.change(screen.getByTestId("new-chat-landing-input"), {
       target: { value: "branch from detached" },

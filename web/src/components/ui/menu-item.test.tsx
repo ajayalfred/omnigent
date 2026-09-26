@@ -19,9 +19,9 @@ describe("MenuItem", () => {
       "py-[3px]",
       "text-ui",
       "hover:bg-muted",
-      "focus-within:bg-muted",
       "bg-muted",
     );
+    expect(screen.getByTestId("item")).not.toHaveClass("focus-within:bg-muted");
   });
 
   it("applies the same styling through asChild", () => {
