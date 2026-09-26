@@ -19,6 +19,10 @@ const projectEntries = [
   storyFile(`${workspaceStoryProjects}/README.md`, 2048),
 ];
 
+function storyBody(canvasElement: HTMLElement) {
+  return within(canvasElement.ownerDocument.body);
+}
+
 const meta = {
   title: "Components/Workspace/WorkspacePickerDialog",
   component: WorkspacePickerDialog,
@@ -29,6 +33,9 @@ const meta = {
     hostId: workspaceStoryHost,
     initialPath: workspaceStoryProjects,
     onConfirm: () => undefined,
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(storyBody(canvasElement).getByTestId("workspace-picker-search-input"));
   },
   decorators: [
     (Story, context) => (
@@ -103,15 +110,15 @@ export const MainCheckoutOnly: Story = {};
 
 export const LinkedWorktreeSelected: Story = {
   play: async ({ canvasElement }) => {
-    await userEvent.click(
-      within(canvasElement).getByRole("radio", { name: "Use worktree command-palette" }),
-    );
+    const body = storyBody(canvasElement);
+    await userEvent.click(body.getByRole("radio", { name: "Use worktree command-palette" }));
+    await userEvent.click(body.getByTestId("workspace-picker-search-input"));
   },
 };
 
 export const TypedFilter: Story = {
   play: async ({ canvasElement }) => {
-    const input = within(canvasElement).getByTestId("workspace-picker-search-input");
+    const input = storyBody(canvasElement).getByTestId("workspace-picker-search-input");
     await userEvent.clear(input);
     await userEvent.type(input, "ap");
   },
