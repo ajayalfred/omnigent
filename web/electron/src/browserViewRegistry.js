@@ -306,6 +306,13 @@ function createBrowserViewRegistry({
     }
   }
 
+  function cancelRecentSessionSwitch() {
+    if (activeConversationId === null) return { ok: true };
+    const entry = entries.get(activeConversationId);
+    if (entry) cancelRecentSessionInput(entry, false);
+    return { ok: true };
+  }
+
   function attachRecentSessionInput(entry) {
     const wc = entry.view && entry.view.webContents;
     if (!wc || typeof wc.on !== "function") return;
@@ -523,6 +530,7 @@ function createBrowserViewRegistry({
     openOrNavigate,
     setActive,
     setSuppressed,
+    cancelRecentSessionSwitch,
     close,
     closeAll,
     // Introspection

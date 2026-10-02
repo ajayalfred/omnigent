@@ -192,6 +192,36 @@ describe("RecentSessionsSwitcher", () => {
     expect(unsubscribe).toHaveBeenCalledOnce();
   });
 
+  it("releases native interception when a forwarded gesture has no sessions", () => {
+    let forwardInput: ((input: Record<string, unknown>) => void) | undefined;
+    const cancelRecentSessionSwitch = vi.fn().mockResolvedValue({ ok: true });
+    (window as unknown as Record<string, unknown>).omnigentDesktop = {
+      kind: "electron",
+      onBrowserRecentSessionInput: (callback: (input: Record<string, unknown>) => void) => {
+        forwardInput = callback;
+        return vi.fn();
+      },
+      browserCancelRecentSessionSwitch: cancelRecentSessionSwitch,
+    };
+    render(<RecentSessionsSwitcher conversations={[]} activeSessionId={null} enabled />);
+
+    act(() => {
+      forwardInput?.({
+        type: "keydown",
+        key: "Tab",
+        code: "Tab",
+        ctrlKey: true,
+        shiftKey: false,
+        altKey: false,
+        metaKey: false,
+        repeat: false,
+      });
+    });
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(cancelRecentSessionSwitch).toHaveBeenCalledOnce();
+  });
+
   it("leaves Ctrl+Tab untouched outside Electron", () => {
     render(
       <RecentSessionsSwitcher

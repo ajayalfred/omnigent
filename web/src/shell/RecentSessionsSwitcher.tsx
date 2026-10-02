@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { Conversation } from "@/hooks/useConversations";
-import { onBrowserRecentSessionInput } from "@/lib/nativeBridge";
+import { cancelBrowserRecentSessionSwitch, onBrowserRecentSessionInput } from "@/lib/nativeBridge";
 import { useNavigate } from "@/lib/routing";
 
 import { conversationDisplayLabel, getConversationAgentType } from "./sidebarNav";
@@ -108,12 +108,11 @@ export function RecentSessionsSwitcher({
       }
 
       const direction = event.shiftKey ? -1 : 1;
-      event.preventDefault();
-      event.stopPropagation();
-
       if (!openRef.current) {
         const nextItems = availableRef.current;
         if (nextItems.length === 0) return;
+        event.preventDefault();
+        event.stopPropagation();
         itemsRef.current = nextItems;
         setItems(nextItems);
         const activeIndex = nextItems.findIndex(
@@ -131,6 +130,8 @@ export function RecentSessionsSwitcher({
         return;
       }
 
+      event.preventDefault();
+      event.stopPropagation();
       const count = itemsRef.current.length;
       if (count === 0) return;
       setSelection((selectedIndexRef.current + direction + count) % count);
@@ -157,6 +158,9 @@ export function RecentSessionsSwitcher({
           cancelable: true,
         }),
       );
+      if (input.type === "keydown" && input.key === "Tab" && !openRef.current) {
+        void cancelBrowserRecentSessionSwitch();
+      }
     });
 
     window.addEventListener("keydown", onKeyDown, true);

@@ -589,6 +589,22 @@ describe('WorkspacePanel "+" new-tab menu', () => {
     expect(keycaps(shell)).toEqual(["Ctrl", "Alt", "T"]);
   });
 
+  it("ignores number shortcuts from the portalled menu", async () => {
+    const { onRightRailTabChange } = renderWorkspace({
+      showBrowserTab: true,
+      openFiles: ["src/App.tsx"],
+      selectedFilePath: "src/App.tsx",
+    });
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Open new" }), { button: 0 });
+    const browser = await screen.findByRole("menuitem", { name: "Browser" });
+    browser.focus();
+    fireEvent.keyDown(browser, { key: "1", code: "Digit1" });
+
+    expect(onRightRailTabChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId("file-viewer-stub")).toHaveTextContent("src/App.tsx");
+  });
+
   it("renders exactly one '+' — after the nav tabs with no open tabs, trailing the tabs otherwise", () => {
     declaresShell();
     // No open tabs → single "+", sitting after the nav tabs.

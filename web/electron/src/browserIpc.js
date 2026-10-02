@@ -325,6 +325,14 @@ function registerBrowserIpc({ ipcMain, isPinnedOriginSender, getRegistryForEvent
     return { ok: r.ok, error: r.error };
   });
 
+  // The renderer can decline a forwarded Ctrl+Tab when no sessions are
+  // available. Clear the native input latch so later page keys stay local.
+  ipcMain.handle("omnigent:browser-cancel-recent-session-switch", (event) => {
+    const g = gateRegistry(event);
+    if (g.error) return { ok: false, error: g.error };
+    return g.registry.cancelRecentSessionSwitch();
+  });
+
   // Reposition the active conversation's view to freshly-measured bounds.
   ipcMain.handle("omnigent:browser-resize", (event, args) => {
     const g = gateRegistry(event);

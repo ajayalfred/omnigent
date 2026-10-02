@@ -285,6 +285,9 @@ contextBridge.exposeInMainWorld("omnigentDesktop", {
     ipcRenderer.on("browser-recent-session-input", listener);
     return () => ipcRenderer.removeListener("browser-recent-session-input", listener);
   },
+  /** Clear the native Ctrl+Tab latch when the renderer has no sessions to show. */
+  browserCancelRecentSessionSwitch: () =>
+    ipcRenderer.invoke("omnigent:browser-cancel-recent-session-switch"),
   /**
    * Subscribe to browser-view creation (`{conversationId}`), fired the first
    * time a view is created — including detached (fresh conversation), which is

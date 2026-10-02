@@ -9,9 +9,11 @@ const PRELOAD = fs.readFileSync(path.join(__dirname, "../src/preload.js"), "utf8
 function loadPreload() {
   const exposed = new Map();
   const listeners = new Map();
+  const invokes = [];
   let updateStatus = { state: "idle" };
   const ipcRenderer = {
-    invoke: async (channel) => {
+    invoke: async (channel, args) => {
+      invokes.push({ channel, args });
       if (channel === "omnigent:get-update-status") return updateStatus;
       return null;
     },
@@ -38,6 +40,7 @@ function loadPreload() {
     },
     emit: (channel, payload) => listeners.get(channel)?.({}, payload),
     hasListener: (channel) => listeners.has(channel),
+    invokes,
   };
 }
 
@@ -68,5 +71,15 @@ describe("server-page update bridge", () => {
 
     unsubscribe();
     assert.equal(h.hasListener("browser-recent-session-input"), false);
+  });
+
+  it("asks the main process to cancel a declined recent-session switch", async () => {
+    const h = loadPreload();
+
+    await h.desktop.browserCancelRecentSessionSwitch();
+
+    assert.ok(
+      h.invokes.some(({ channel }) => channel === "omnigent:browser-cancel-recent-session-switch"),
+    );
   });
 });

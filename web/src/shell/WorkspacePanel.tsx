@@ -978,6 +978,7 @@ function WorkspacePanelImpl({
   };
   const handlePermanentTabNumber = (event: KeyboardEvent<HTMLDivElement>) => {
     if (
+      !event.currentTarget.contains(event.target as Node) ||
       pending ||
       event.repeat ||
       event.shiftKey ||

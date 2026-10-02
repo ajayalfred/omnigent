@@ -225,6 +225,8 @@ interface ElectronDesktopApi extends NativeShellApi {
   onBrowserRecentSessionInput?: (
     callback: (input: BrowserRecentSessionInput) => void,
   ) => () => void;
+  /** Clear native key interception when the recent-session gesture was declined. */
+  browserCancelRecentSessionSwitch?: () => Promise<{ ok: boolean; error?: string }>;
 }
 
 /** A lifecycle action for the host daemon. */
@@ -500,6 +502,17 @@ export function onBrowserRecentSessionInput(
   } catch (err) {
     console.warn("[nativeBridge] browser recent-session input subscription failed:", err);
     return () => {};
+  }
+}
+
+/** Tell Electron that a forwarded Ctrl+Tab did not open the session switcher. */
+export async function cancelBrowserRecentSessionSwitch(): Promise<void> {
+  const electron = electronApi();
+  if (!electron?.browserCancelRecentSessionSwitch) return;
+  try {
+    await electron.browserCancelRecentSessionSwitch();
+  } catch (err) {
+    console.warn("[nativeBridge] browser recent-session cancellation failed:", err);
   }
 }
 

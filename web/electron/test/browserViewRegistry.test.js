@@ -176,6 +176,7 @@ function makeRecentSessionInputRegistry({ isHostFocused = () => true } = {}) {
     isHostFocused,
   });
   registry.openOrNavigate("conv_1", "https://example.com");
+  registry.setActive("conv_1");
   return { registry, listeners, sent };
 }
 
@@ -245,6 +246,21 @@ describe("browserViewRegistry — recent-session input forwarding", () => {
     assert.equal(prevented.length, 1, "only Ctrl+Tab is claimed");
     assert.equal(sent.length, countAfterBlur, "ordinary Escape is not forwarded");
     assert.equal(sent.at(-1).payload.key, "Escape", "focus loss cancels the renderer switcher");
+  });
+
+  it("leaves later page input alone when the renderer declines the switch", () => {
+    const { registry, listeners, sent } = makeRecentSessionInputRegistry();
+    const forward = listeners.get("before-input-event");
+    const prevented = [];
+    const event = () => ({ preventDefault: () => prevented.push(true) });
+
+    forward(event(), { type: "keyDown", key: "Tab", code: "Tab", control: true });
+    registry.cancelRecentSessionSwitch();
+    const countAfterCancellation = sent.length;
+    forward(event(), { type: "keyDown", key: "Escape", code: "Escape", control: false });
+
+    assert.equal(prevented.length, 1, "only Ctrl+Tab is claimed");
+    assert.equal(sent.length, countAfterCancellation, "ordinary Escape is not forwarded");
   });
 });
 
