@@ -1447,10 +1447,32 @@ export function AppShell() {
     setSearchParams,
     setRightPanelOpenAnimated,
   ]);
+  const focusWorkspaceTabs = useCallback(() => {
+    const tabList = workspaceTabListRef.current;
+    const selectedTab = tabList?.querySelector<HTMLElement>(
+      `[data-workspace-tab="${rightRailTab}"]:not(:disabled)`,
+    );
+    (selectedTab ?? tabList?.querySelector<HTMLElement>('[role="tab"]:not(:disabled)'))?.focus();
+  }, [rightRailTab]);
   const toggleRightPanelFromHotkey = useCallback(() => {
-    focusWorkspaceTabsOnOpenRef.current = !rightPanelOpen && !!conversationId && hasRailContent;
+    if (rightPanelOpen && workspaceTabListRef.current?.contains(document.activeElement)) {
+      focusWorkspaceTabsOnOpenRef.current = false;
+      toggleRightPanel();
+      return;
+    }
+    if (rightPanelOpen) {
+      focusWorkspaceTabs();
+      return;
+    }
+    focusWorkspaceTabsOnOpenRef.current = !!conversationId && hasRailContent;
     toggleRightPanel();
-  }, [rightPanelOpen, conversationId, hasRailContent, toggleRightPanel]);
+  }, [rightPanelOpen, conversationId, hasRailContent, focusWorkspaceTabs, toggleRightPanel]);
+  const revealRightPanel = useCallback(() => {
+    if (!conversationId || rightPanelOpen) return;
+    writeSessionWorkspaceState(conversationId, { open: true });
+    writeDefaultWorkspacePanelOpen(true);
+    setRightPanelOpenAnimated(true);
+  }, [conversationId, rightPanelOpen, setRightPanelOpenAnimated]);
 
   // The hotkey (⌘⌥[) and command-palette toggle for the left sidebar. A peeking
   // sidebar counts as open, so toggling collapses it; either way peek is
@@ -2175,12 +2197,8 @@ export function AppShell() {
   useEffect(() => {
     if (!workspacePanelVisible || !focusWorkspaceTabsOnOpenRef.current) return;
     focusWorkspaceTabsOnOpenRef.current = false;
-    const tabList = workspaceTabListRef.current;
-    const selectedTab = tabList?.querySelector<HTMLElement>(
-      `[data-workspace-tab="${rightRailTab}"]:not(:disabled)`,
-    );
-    (selectedTab ?? tabList?.querySelector<HTMLElement>('[role="tab"]:not(:disabled)'))?.focus();
-  }, [workspacePanelVisible, rightRailTab]);
+    focusWorkspaceTabs();
+  }, [workspacePanelVisible, focusWorkspaceTabs]);
 
   return (
     <FileViewerContext.Provider value={fileViewerContextValue}>
@@ -2422,6 +2440,7 @@ export function AppShell() {
                     showFilesPanel={showFilesPanel}
                     showGithubTab={railTabsAvailable.github}
                     showBrowserTab={railTabsAvailable.browser}
+                    onBrowserTabOpened={revealRightPanel}
                     changedCount={changedCount}
                     subagentsWorking={subagentsWorking}
                     agentCount={agentCount}

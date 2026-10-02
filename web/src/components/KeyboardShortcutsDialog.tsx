@@ -33,7 +33,7 @@ import { useIsCoarsePointer } from "@/hooks/useIsCoarsePointer";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import { readSubmitWithModEnter } from "@/lib/composerSendShortcutPreferences";
 import { hasCommandModifier } from "@/lib/hotkeys";
-import { isElectronShell, isNativeShell } from "@/lib/nativeBridge";
+import { isElectronShell, isNativeShell, supportsBrowser } from "@/lib/nativeBridge";
 
 // Custom event the dialog listens for, so non-adjacent surfaces (e.g. the
 // account menu) can open it without threading state through the tree.
@@ -104,7 +104,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { label: "Toggle workspace sidebar", keys: [MOD_KEY, ALT_KEY, "]"] },
       {
         label: "Select a workspace tab",
-        keys: [MOD_KEY, ALT_KEY, "]", "1…5"],
+        keys: [MOD_KEY, ALT_KEY, "]", "1…4"],
         lastKeySeparator: "+",
       },
       { label: "Open a new browser tab", keys: [MOD_KEY, ALT_KEY, "B"] },
@@ -137,6 +137,7 @@ function pinnedSessionShortcut(native: boolean): Shortcut {
 function shortcutGroupsFor(
   native: boolean,
   electron: boolean,
+  browser: boolean,
   submitWithModEnter: boolean,
   preventsKeyboardSubmit: boolean,
 ): ShortcutGroup[] {
@@ -168,6 +169,12 @@ function shortcutGroupsFor(
         ],
       };
     }
+    if (group.title === "View" && !browser) {
+      return {
+        ...group,
+        items: group.items.filter((item) => item.label !== "Open a new browser tab"),
+      };
+    }
     return group;
   });
 }
@@ -189,6 +196,7 @@ export function KeyboardShortcutsList({
   const groups = shortcutGroupsFor(
     isNativeShell(),
     isElectronShell(),
+    supportsBrowser(),
     readSubmitWithModEnter(),
     preventsKeyboardSubmit,
   );

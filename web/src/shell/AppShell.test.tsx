@@ -2556,6 +2556,46 @@ describe("Right workspace card visibility", () => {
     await waitFor(() => expect(filesTab).toHaveFocus());
     fireEvent.keyDown(filesTab, { key: "2" });
     expect(screen.getByTestId("files-panel")).toHaveAttribute("data-flat-view", "true");
+
+    screen.getByRole("button", { name: "Collapse right panel" }).focus();
+    fireEvent.keyDown(document, { code: "BracketRight", ctrlKey: true, altKey: true });
+
+    const changesTab = screen.getByRole("tab", { name: "Changes" });
+    expect(screen.getByRole("complementary", { name: "Workspace" })).toBeInTheDocument();
+    await waitFor(() => expect(changesTab).toHaveFocus());
+
+    fireEvent.keyDown(document, { code: "BracketRight", ctrlKey: true, altKey: true });
+    expect(screen.queryByRole("complementary", { name: "Workspace" })).toBeNull();
+  });
+
+  it("reveals a collapsed workspace when the Browser hotkey opens a tab", async () => {
+    writeWorkspacePanelDefault("collapsed");
+    vi.stubGlobal("omnigentDesktop", {
+      kind: "electron",
+      browserOpenOrNavigate: vi.fn(),
+      setBadgeCount: vi.fn(),
+    });
+    useEnvironmentMock.mockReturnValue({
+      data: { available: true, root: null, home: null },
+      isLoading: false,
+    } as unknown as ReturnType<typeof useWorkspaceEnvironment>);
+    mockConversations([{ id: "conv_browser_hotkey", permission_level: null }]);
+
+    try {
+      renderShell("/c/conv_browser_hotkey");
+      expect(screen.queryByRole("complementary", { name: "Workspace" })).toBeNull();
+
+      fireEvent.keyDown(window, { code: "KeyB", ctrlKey: true, altKey: true });
+
+      expect(await screen.findByRole("tab", { name: "Browser 1" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      expect(screen.getByRole("complementary", { name: "Workspace" })).toBeInTheDocument();
+    } finally {
+      cleanup();
+      vi.unstubAllGlobals();
+    }
   });
 
   it("mounts an expandable pending card for a temporary session", () => {

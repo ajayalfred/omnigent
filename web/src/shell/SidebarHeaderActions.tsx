@@ -71,7 +71,7 @@ export function SidebarHeaderActions({
             variant="ghost"
             size="icon-xs"
             aria-label={expanded ? "Close sidebar" : "Open sidebar"}
-            aria-keyshortcuts={`${ARIA_MOD_KEY}+Alt+BracketLeft`}
+            aria-keyshortcuts={`${ARIA_MOD_KEY}+Alt+[`}
             onClick={onToggle}
             onPointerEnter={onTogglePointerEnter}
             onPointerDown={onTogglePointerDown}
@@ -184,7 +184,7 @@ export function SidebarSettingsButton({
           variant="ghost"
           size="icon-xs"
           aria-label="Settings"
-          aria-keyshortcuts={`${ARIA_MOD_KEY}+Alt+Comma`}
+          aria-keyshortcuts={`${ARIA_MOD_KEY}+Alt+,`}
           className={cn(SIDEBAR_FLOAT_BUTTON, "rounded-[8px] bg-transparent", className)}
         >
           <Link to="/settings" onClick={onSettingsClick} data-testid={testId}>

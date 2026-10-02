@@ -659,6 +659,8 @@ interface WorkspacePanelProps {
   showGithubTab: boolean;
   /** Whether Browser soft tabs are available — hidden without a browser bridge. */
   showBrowserTab: boolean;
+  /** Reveal the workspace after a Browser tab is opened by a global shortcut. */
+  onBrowserTabOpened?: () => void;
   /** Count of changed files, shown as the Changes tab badge. */
   changedCount: number;
   /** How many child agents are actively working (Agents tab badge). */
@@ -762,6 +764,7 @@ function WorkspacePanelImpl({
   showFilesPanel,
   showGithubTab,
   showBrowserTab,
+  onBrowserTabOpened,
   changedCount,
   subagentsWorking,
   agentCount,
@@ -807,6 +810,7 @@ function WorkspacePanelImpl({
   const addBrowser = () => {
     browsers.add();
     onRightRailTabChange("browser");
+    onBrowserTabOpened?.();
   };
   useNewBrowserHotkey(addBrowser, showBrowserTab && !pending);
 

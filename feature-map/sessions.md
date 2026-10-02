@@ -25,6 +25,8 @@ the header menu), and each place is a separate entry point.
   dialog with the command to run; the desktop app can reconnect a local host
   itself. States: reconnecting (spinner), reconnect failed (retry), host offline.
 - `resume-imported`: an imported session can be resumed onto a chosen local host.
+- `recent-switcher`: the desktop app opens the five most recent sessions with
+  Control+Tab; Tab and Shift+Tab cycle, releasing Control switches, and Escape cancels.
 - `browser-storage`: browser soft tabs, including one opened by the agent, share
   cookies within a session; different sessions stay isolated. Navigation stays
   per-tab.
@@ -56,6 +58,10 @@ devices fold some row controls into the menu.
 **Desktop browser:** choose **+ → Browser** in the Workspace panel. Agent
 browser requests and chat links with in-app opening enabled create or select a
 closable Browser soft tab automatically.
+
+**Desktop recent sessions:** hold Control and press Tab to open the five most
+recent sessions. Continue pressing Tab (or Shift+Tab) to cycle, release Control
+to switch, or press Escape to cancel.
 
 ## Driving it with the repro environment
 

@@ -21,13 +21,13 @@ describe("SidebarHeaderActions shortcut hints", () => {
       control: "Settings",
       tooltip: "Settings",
       keys: [MOD_KEY, ALT_KEY, ","],
-      aria: MOD_KEY === "⌘" ? "Meta+Alt+Comma" : "Control+Alt+Comma",
+      aria: MOD_KEY === "⌘" ? "Meta+Alt+," : "Control+Alt+,",
     },
     {
       control: "Close sidebar",
       tooltip: "Collapse sidebar",
       keys: [MOD_KEY, ALT_KEY, "["],
-      aria: MOD_KEY === "⌘" ? "Meta+Alt+BracketLeft" : "Control+Alt+BracketLeft",
+      aria: MOD_KEY === "⌘" ? "Meta+Alt+[" : "Control+Alt+[",
     },
   ])("shows the $control shortcut in its tooltip", async ({ control, tooltip, keys, aria }) => {
     render(

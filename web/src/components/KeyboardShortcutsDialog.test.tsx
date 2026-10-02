@@ -12,9 +12,11 @@ import { COMPOSER_SEND_SHORTCUT_STORAGE_KEY } from "@/lib/composerSendShortcutPr
 // the browser). Default the mock to browser (false); flip per-test for native.
 const isNativeShell = vi.fn(() => false);
 const isElectronShell = vi.fn(() => false);
+const supportsBrowser = vi.fn(() => false);
 vi.mock("@/lib/nativeBridge", () => ({
   isNativeShell: () => isNativeShell(),
   isElectronShell: () => isElectronShell(),
+  supportsBrowser: () => supportsBrowser(),
   // DialogContent (rendered here) reads isIOSShell to size modals for the iOS
   // keyboard; this suite exercises the browser path, so it's always false.
   isIOSShell: () => false,
@@ -23,6 +25,7 @@ vi.mock("@/lib/nativeBridge", () => ({
 beforeEach(() => {
   isNativeShell.mockReturnValue(false);
   isElectronShell.mockReturnValue(false);
+  supportsBrowser.mockReturnValue(false);
   localStorage.clear();
 });
 afterEach(() => {
@@ -111,12 +114,21 @@ describe("KeyboardShortcutsDialog", () => {
     expect(keysFor("Previous session")).toEqual(["Ctrl", "["]);
     expect(keysFor("Next session")).toEqual(["Ctrl", "]"]);
     expect(screen.getByText("Toggle conversations sidebar")).toBeTruthy();
-    expect(keysFor("Open a new browser tab")).toEqual(["Ctrl", "Alt", "B"]);
+    expect(screen.queryByText("Open a new browser tab")).toBeNull();
     expect(screen.getByText("Open a new shell")).toBeTruthy();
     const workspaceTabRow = screen.getByText("Select a workspace tab").closest("li");
-    expect(keysFor("Select a workspace tab")).toEqual(["Ctrl", "Alt", "]", "1…5"]);
+    expect(keysFor("Select a workspace tab")).toEqual(["Ctrl", "Alt", "]", "1…4"]);
     expect(workspaceTabRow?.textContent?.match(/\+/g)).toHaveLength(1);
     expect(screen.getByText("Navigate suggestions")).toBeTruthy();
+  });
+
+  it("shows the Browser shortcut only when the desktop bridge supports it", () => {
+    const { rerender } = render(<KeyboardShortcutsList />);
+    expect(screen.queryByText("Open a new browser tab")).toBeNull();
+
+    supportsBrowser.mockReturnValue(true);
+    rerender(<KeyboardShortcutsList />);
+    expect(keysFor("Open a new browser tab")).toEqual(["Ctrl", "Alt", "B"]);
   });
 
   it("toggles closed on a second hotkey press", async () => {

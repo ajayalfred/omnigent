@@ -105,6 +105,7 @@ function renderWorkspace(
   const openFileViewer = vi.fn();
   const onCloseFile = vi.fn();
   const onRightRailTabChange = vi.fn();
+  const onBrowserTabOpened = vi.fn();
   const openTerminalTab = vi.fn();
   const onCloseTerminal = vi.fn();
   const onToggleMaximized = vi.fn();
@@ -129,6 +130,7 @@ function renderWorkspace(
         showFilesPanel
         showGithubTab={overrides.showGithubTab ?? false}
         showBrowserTab={overrides.showBrowserTab ?? false}
+        onBrowserTabOpened={onBrowserTabOpened}
         changedCount={overrides.changedCount ?? 0}
         subagentsWorking={0}
         agentCount={1}
@@ -159,6 +161,7 @@ function renderWorkspace(
     openFileViewer,
     onCloseFile,
     onRightRailTabChange,
+    onBrowserTabOpened,
     openTerminalTab,
     onCloseTerminal,
     onToggleMaximized,
@@ -892,12 +895,15 @@ describe("WorkspacePanel tab-strip layout (regression)", () => {
 
 describe("WorkspacePanel browser tab", () => {
   it("opens a browser tab with Ctrl+Alt+B", () => {
-    const { onRightRailTabChange } = renderWorkspace({ showBrowserTab: true });
+    const { onRightRailTabChange, onBrowserTabOpened } = renderWorkspace({
+      showBrowserTab: true,
+    });
 
     fireEvent.keyDown(window, { code: "KeyB", ctrlKey: true, altKey: true });
 
     expect(screen.getByRole("tab", { name: "Browser 1" })).toBeInTheDocument();
     expect(onRightRailTabChange).toHaveBeenCalledWith("browser");
+    expect(onBrowserTabOpened).toHaveBeenCalledOnce();
   });
 
   it("offers browsers without shell access and creates multiple closable tabs", async () => {
