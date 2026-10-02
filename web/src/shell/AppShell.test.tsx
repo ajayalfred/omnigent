@@ -2645,6 +2645,11 @@ describe("Right workspace card visibility", () => {
       "omnigent.web.panel-key:conv_workspace_terminal",
       "terminal:terminal_main",
     );
+    writeSessionWorkspaceState("conv_workspace_terminal", {
+      open: false,
+      openFiles: ["README.md"],
+      selectedFilePath: "README.md",
+    });
     useEnvironmentMock.mockReturnValue({
       data: { available: true, root: null, home: null },
       isLoading: false,
@@ -2654,12 +2659,15 @@ describe("Right workspace card visibility", () => {
     renderShell("/c/conv_workspace_terminal");
     expect(screen.getByTestId("terminals-panel")).toHaveAttribute("data-state", "open");
     expect(screen.queryByRole("complementary", { name: "Workspace" })).toBeNull();
+    expect(screen.getByTestId("url-params")).not.toHaveTextContent("file=");
 
     fireEvent.keyDown(document, { code: "BracketRight", ctrlKey: true, altKey: true });
 
     expect(screen.getByTestId("terminals-panel")).toHaveAttribute("data-state", "closed");
     expect(screen.getByRole("complementary", { name: "Workspace" })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("tab", { name: "Files" })).toHaveFocus());
+    expect(screen.getByTestId("file-viewer-inline")).toHaveAttribute("data-path", "README.md");
+    expect(screen.getByTestId("url-params")).toHaveTextContent("file=README.md");
+    await waitFor(() => expect(screen.getByTitle("README.md")).toHaveFocus());
   });
 
   it("mounts an expandable pending card for a temporary session", () => {

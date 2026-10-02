@@ -1396,6 +1396,17 @@ export function AppShell() {
       { replace: true },
     );
   }, [setSearchParams]);
+  const restoreSelectedFileUrl = useCallback(() => {
+    if (!selectedFilePath) return;
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        params.set("file", selectedFilePath);
+        return params;
+      },
+      { replace: true },
+    );
+  }, [selectedFilePath, setSearchParams]);
 
   // Toggle the right (Workspace) sidebar — shared by the header's collapse
   // button and the ⌘⌥]/Ctrl+Alt+] hotkey so they can't drift. Beyond flipping the
@@ -1416,22 +1427,9 @@ export function AppShell() {
       writeDefaultWorkspacePanelOpen(next);
     }
     if (next) {
-      if (selectedFilePath) {
-        // Reopening lands back on the file remembered in per-session
-        // state, so re-add ?file= to keep the URL shareable. diff and
-        // comment are URL-only ephemerals (not remembered), so they
-        // intentionally don't rehydrate. Imperative (not an effect) to
-        // avoid the FileViewer diff-sync race documented in that effect.
-
-        setSearchParams(
-          (prev) => {
-            const params = new URLSearchParams(prev);
-            params.set("file", selectedFilePath);
-            return params;
-          },
-          { replace: true },
-        );
-      }
+      // Reopening lands back on the remembered file, so keep its URL shareable.
+      // URL-only diff/comment state intentionally stays cleared.
+      restoreSelectedFileUrl();
     } else {
       // Collapsing the rail hides the workspace, so strip the deep-
       // link params that point into it; otherwise the URL advertises
@@ -1442,9 +1440,8 @@ export function AppShell() {
   }, [
     rightPanelOpen,
     conversationId,
-    selectedFilePath,
     clearFileViewerUrl,
-    setSearchParams,
+    restoreSelectedFileUrl,
     setRightPanelOpenAnimated,
   ]);
   const focusWorkspaceTabs = useCallback(() => {
@@ -1480,6 +1477,7 @@ export function AppShell() {
       (!terminalFirst && panelOpen) || executionLogsOpen || filesPanelOpen;
     if (hiddenByCompetingPanel) {
       focusWorkspaceTabsOnOpenRef.current = !!conversationId && hasRailContent;
+      restoreSelectedFileUrl();
       revealRightPanel();
       return;
     }
@@ -1497,6 +1495,7 @@ export function AppShell() {
     filesPanelOpen,
     conversationId,
     hasRailContent,
+    restoreSelectedFileUrl,
     revealRightPanel,
     focusWorkspaceTabs,
     toggleRightPanel,
