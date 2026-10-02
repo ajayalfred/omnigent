@@ -249,19 +249,21 @@ describe("WorkspacePanel surface presentation", () => {
 
     fireEvent.keyDown(changes, { key: "2" });
     fireEvent.keyDown(changes, { key: "5" });
-    fireEvent.keyDown(changes, { key: "4", ctrlKey: true, altKey: true });
-    const platform = vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
-    fireEvent.keyDown(changes, {
-      key: "™",
-      code: "Digit2",
-      metaKey: true,
-      altKey: true,
-    });
-    platform.mockRestore();
+    fireEvent.keyDown(changes, { key: "4" });
+
+    const windowKeyDown = vi.fn();
+    window.addEventListener("keydown", windowKeyDown);
+    try {
+      fireEvent.keyDown(changes, { key: "2", code: "Digit2", ctrlKey: true, altKey: true });
+      expect(windowKeyDown).toHaveBeenCalledOnce();
+      expect(windowKeyDown.mock.calls[0][0].defaultPrevented).toBe(false);
+    } finally {
+      window.removeEventListener("keydown", windowKeyDown);
+    }
 
     expect(onRightRailTabChange).toHaveBeenNthCalledWith(1, "files");
     expect(onRightRailTabChange).toHaveBeenNthCalledWith(2, "subagents");
-    expect(onRightRailTabChange).toHaveBeenNthCalledWith(3, "files");
+    expect(onRightRailTabChange).toHaveBeenCalledTimes(2);
   });
 
   it("compresses numeric positions around unavailable permanent tabs", () => {
@@ -275,16 +277,6 @@ describe("WorkspacePanel surface presentation", () => {
 
     fireEvent.keyDown(files, { key: "3" });
     expect(onRightRailTabChange).toHaveBeenCalledWith("subagents");
-  });
-
-  it("ignores modified digits and digits without a visible tab", () => {
-    const { onRightRailTabChange } = renderWorkspace();
-    const files = screen.getByRole("tab", { name: "Files" });
-
-    fireEvent.keyDown(files, { key: "2", metaKey: true });
-    fireEvent.keyDown(files, { key: "4" });
-
-    expect(onRightRailTabChange).not.toHaveBeenCalled();
   });
 
   it("keeps the remaining order when the default tab is unavailable", () => {

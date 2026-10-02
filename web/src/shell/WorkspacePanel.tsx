@@ -49,7 +49,6 @@ import { useBrowserTabs } from "@/hooks/useBrowserTabs";
 import { useNewBrowserHotkey } from "@/hooks/useNewBrowserHotkey";
 import { useSideChats } from "@/hooks/useSideChats";
 import { SideChatPane } from "@/components/chat/SideChatPane";
-import { hasCommandModifier } from "@/lib/hotkeys";
 import { useChatStore } from "@/store/chatStore";
 import { SIDE_CHAT_COMMAND_PREFIX, supportsSideChat, usesNativeSideChatFork } from "@/lib/sideChat";
 import { createSideChat, stopSession } from "@/lib/sessionsApi";
@@ -978,16 +977,18 @@ function WorkspacePanelImpl({
     onRightRailTabChange(tab);
   };
   const handlePermanentTabNumber = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (pending || event.repeat || event.shiftKey) return;
-    const modified = event.metaKey || event.ctrlKey || event.altKey;
-    if (modified && (!hasCommandModifier(event.nativeEvent) || !event.altKey)) return;
-    if (typeof event.getModifierState === "function" && event.getModifierState("AltGraph")) {
+    if (
+      pending ||
+      event.repeat ||
+      event.shiftKey ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.altKey ||
+      !/^[1-9]$/.test(event.key)
+    ) {
       return;
     }
-    const digit =
-      modified && /^Digit[1-9]$/.test(event.code) ? event.code.slice("Digit".length) : event.key;
-    if (!/^[1-9]$/.test(digit)) return;
-    const tab = visiblePermanentTabs[Number(digit) - 1];
+    const tab = visiblePermanentTabs[Number(event.key) - 1];
     if (!tab) return;
     event.preventDefault();
     event.stopPropagation();
