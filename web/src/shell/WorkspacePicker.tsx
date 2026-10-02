@@ -1132,9 +1132,7 @@ export function WorkspacePicker({
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={onClose}
-              className="rounded-lg px-3 font-normal"
               data-testid="workspace-picker-cancel"
             >
               Cancel
@@ -1143,7 +1141,6 @@ export function WorkspacePicker({
           {onSelect && (
             <Button
               type="button"
-              size="sm"
               disabled={
                 currentAbsolute === "" ||
                 currentAbsolute === null ||
@@ -1152,7 +1149,6 @@ export function WorkspacePicker({
               }
               onClick={handleSelect}
               title={`Confirm folder: ${basename(selectedWorktreePath ?? currentAbsolute)}`}
-              className="shrink-0 rounded-lg px-3 font-normal"
               data-testid="workspace-picker-select"
             >
               Confirm
