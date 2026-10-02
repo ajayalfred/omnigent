@@ -61,16 +61,18 @@ describe("useNewBrowserHotkey", () => {
     renderHook(() => useNewBrowserHotkey(onOpen, true, false));
 
     press({ code: "KeyB", ctrlKey: true, altKey: true, repeat: true });
-    const editor = document.createElement("div");
-    editor.className = "monaco-editor";
-    editor.tabIndex = 0;
-    document.body.appendChild(editor);
-    editor.focus();
-    const editorEvent = press({ code: "KeyB", ctrlKey: true, altKey: true }, editor);
+    for (const className of ["monaco-editor", "xterm"]) {
+      const editor = document.createElement("div");
+      editor.className = className;
+      editor.tabIndex = 0;
+      document.body.appendChild(editor);
+      editor.focus();
+      const editorEvent = press({ code: "KeyB", ctrlKey: true, altKey: true }, editor);
+      expect(editorEvent.defaultPrevented).toBe(false);
+      editor.remove();
+    }
 
     expect(onOpen).not.toHaveBeenCalled();
-    expect(editorEvent.defaultPrevented).toBe(false);
-    editor.remove();
   });
 
   it("does nothing when disabled", () => {

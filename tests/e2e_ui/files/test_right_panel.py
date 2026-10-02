@@ -29,7 +29,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
     ("tab_name", "tooltip", "shortcut", "expected_state"),
     [
         ("Files", "Files", "1", "active"),
-        ("Agents", "Agents", "3", "inactive"),
+        ("Agents", "Agents", "4", "inactive"),
     ],
 )
 def test_workspace_tab_hover_tooltip(

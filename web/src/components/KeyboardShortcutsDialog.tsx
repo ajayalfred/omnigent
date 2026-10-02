@@ -101,7 +101,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "View",
     items: [
       { label: "Toggle conversations sidebar", keys: [MOD_KEY, ALT_KEY, "["] },
-      { label: "Toggle workspace sidebar", keys: [MOD_KEY, ALT_KEY, "]"] },
+      { label: "Focus or close workspace sidebar", keys: [MOD_KEY, ALT_KEY, "]"] },
       {
         label: "Select a workspace tab",
         keys: [MOD_KEY, ALT_KEY, "]", "1…4"],

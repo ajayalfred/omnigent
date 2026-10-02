@@ -114,6 +114,7 @@ describe("KeyboardShortcutsDialog", () => {
     expect(keysFor("Previous session")).toEqual(["Ctrl", "["]);
     expect(keysFor("Next session")).toEqual(["Ctrl", "]"]);
     expect(screen.getByText("Toggle conversations sidebar")).toBeTruthy();
+    expect(screen.getByText("Focus or close workspace sidebar")).toBeTruthy();
     expect(screen.queryByText("Open a new browser tab")).toBeNull();
     expect(screen.getByText("Open a new shell")).toBeTruthy();
     const workspaceTabRow = screen.getByText("Select a workspace tab").closest("li");

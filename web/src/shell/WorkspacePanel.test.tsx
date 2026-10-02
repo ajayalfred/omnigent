@@ -250,9 +250,18 @@ describe("WorkspacePanel surface presentation", () => {
     fireEvent.keyDown(changes, { key: "2" });
     fireEvent.keyDown(changes, { key: "5" });
     fireEvent.keyDown(changes, { key: "4", ctrlKey: true, altKey: true });
+    const platform = vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    fireEvent.keyDown(changes, {
+      key: "™",
+      code: "Digit2",
+      metaKey: true,
+      altKey: true,
+    });
+    platform.mockRestore();
 
     expect(onRightRailTabChange).toHaveBeenNthCalledWith(1, "files");
     expect(onRightRailTabChange).toHaveBeenNthCalledWith(2, "subagents");
+    expect(onRightRailTabChange).toHaveBeenNthCalledWith(3, "files");
   });
 
   it("compresses numeric positions around unavailable permanent tabs", () => {

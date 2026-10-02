@@ -124,6 +124,23 @@ describe("RecentSessionsSwitcher", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("cancels without switching when the window loses focus", () => {
+    render(
+      <RecentSessionsSwitcher
+        conversations={[conversation("two", 2), conversation("one", 1)]}
+        activeSessionId="two"
+        enabled
+      />,
+    );
+
+    pressTab();
+    fireEvent.blur(window);
+    fireEvent.keyUp(window, { key: "Control", code: "ControlLeft" });
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
   it("leaves Ctrl+Tab untouched outside Electron", () => {
     render(
       <RecentSessionsSwitcher

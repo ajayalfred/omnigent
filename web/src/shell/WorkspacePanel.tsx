@@ -978,13 +978,16 @@ function WorkspacePanelImpl({
     onRightRailTabChange(tab);
   };
   const handlePermanentTabNumber = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (pending || event.repeat || event.shiftKey || !/^[1-9]$/.test(event.key)) return;
+    if (pending || event.repeat || event.shiftKey) return;
     const modified = event.metaKey || event.ctrlKey || event.altKey;
     if (modified && (!hasCommandModifier(event.nativeEvent) || !event.altKey)) return;
     if (typeof event.getModifierState === "function" && event.getModifierState("AltGraph")) {
       return;
     }
-    const tab = visiblePermanentTabs[Number(event.key) - 1];
+    const digit =
+      modified && /^Digit[1-9]$/.test(event.code) ? event.code.slice("Digit".length) : event.key;
+    if (!/^[1-9]$/.test(digit)) return;
+    const tab = visiblePermanentTabs[Number(digit) - 1];
     if (!tab) return;
     event.preventDefault();
     event.stopPropagation();
