@@ -97,7 +97,9 @@ describe("KeyboardShortcutsDialog", () => {
     expect(screen.getByText("Keyboard shortcuts")).toBeTruthy();
     // General / In chats / Navigation / View / Slash commands — one each.
     expect(screen.getByText("Start a new session")).toBeTruthy();
+    expect(keysFor("Start a new session")).toEqual(["Ctrl", "Alt", "N"]);
     expect(screen.getByText("Open command palette")).toBeTruthy();
+    expect(keysFor("Open Settings")).toEqual(["Ctrl", "Alt", ","]);
     expect(screen.getByText("Show keyboard shortcuts")).toBeTruthy();
     expect(screen.getByText("Send message")).toBeTruthy();
     expect(keysFor("Open model picker")).toEqual(["Ctrl", "⇧", "M"]);
@@ -106,6 +108,7 @@ describe("KeyboardShortcutsDialog", () => {
     expect(keysFor("Previous session")).toEqual(["Ctrl", "["]);
     expect(keysFor("Next session")).toEqual(["Ctrl", "]"]);
     expect(screen.getByText("Toggle conversations sidebar")).toBeTruthy();
+    expect(keysFor("Open a new browser tab")).toEqual(["Ctrl", "Alt", "B"]);
     expect(screen.getByText("Open a new shell")).toBeTruthy();
     const workspaceTabRow = screen.getByText("Select a workspace tab").closest("li");
     expect(keysFor("Select a workspace tab")).toEqual(["Ctrl", "Alt", "]", "1…5"]);

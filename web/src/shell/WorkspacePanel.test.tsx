@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
+import { ALT_KEY, MOD_KEY } from "@/components/KeyboardShortcut";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useSessionAgent } from "@/hooks/useAgents";
 import type { SessionLiveness } from "@/hooks/useSessionLiveness";
@@ -331,7 +332,10 @@ describe("WorkspacePanel surface presentation", () => {
       fireEvent.pointerMove(tab.parentElement!, { pointerType: "mouse" });
       const tip = await screen.findByRole("tooltip");
       expect(tip).toHaveTextContent(tooltip);
-      expect(tip.querySelector('[data-slot="kbd"]')).toHaveTextContent(shortcut);
+      expect(
+        Array.from(tip.querySelectorAll('[data-slot="kbd"]')).map((key) => key.textContent),
+      ).toEqual([MOD_KEY, ALT_KEY, "]", shortcut]);
+      expect(tip.textContent?.match(/\+/g)).toHaveLength(1);
     },
   );
 });
@@ -539,6 +543,20 @@ describe('WorkspacePanel "+" new-tab menu', () => {
     // No declared terminals (default mock: data undefined) → nothing to open.
     renderWorkspace({ showBrowserTab: false });
     expect(screen.queryByRole("button", { name: "Open new" })).toBeNull();
+  });
+
+  it("shows the Browser and Shell shortcuts as keycaps", async () => {
+    declaresShell();
+    renderWorkspace({ showBrowserTab: true });
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Open new" }), { button: 0 });
+    const browser = await screen.findByRole("menuitem", { name: "Browser" });
+    const shell = screen.getByRole("menuitem", { name: /shell \(zsh\)/i });
+    const keycaps = (item: HTMLElement) =>
+      Array.from(item.querySelectorAll("kbd"), (key) => key.textContent);
+
+    expect(keycaps(browser)).toEqual(["Ctrl", "Alt", "B"]);
+    expect(keycaps(shell)).toEqual(["Ctrl", "Alt", "T"]);
   });
 
   it("renders exactly one '+' — after the nav tabs with no open tabs, trailing the tabs otherwise", () => {
@@ -847,6 +865,15 @@ describe("WorkspacePanel tab-strip layout (regression)", () => {
 });
 
 describe("WorkspacePanel browser tab", () => {
+  it("opens a browser tab with Ctrl+Alt+B", () => {
+    const { onRightRailTabChange } = renderWorkspace({ showBrowserTab: true });
+
+    fireEvent.keyDown(window, { code: "KeyB", ctrlKey: true, altKey: true });
+
+    expect(screen.getByRole("tab", { name: "Browser 1" })).toBeInTheDocument();
+    expect(onRightRailTabChange).toHaveBeenCalledWith("browser");
+  });
+
   it("offers browsers without shell access and creates multiple closable tabs", async () => {
     renderWorkspace({ showBrowserTab: true, rightRailTab: "browser" });
     const openBrowser = async () => {

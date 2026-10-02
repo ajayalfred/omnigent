@@ -19,6 +19,7 @@ import { useSidebarToggleHotkeys } from "@/hooks/useSidebarToggleHotkeys";
 import { useCommandPaletteHotkey } from "@/hooks/useCommandPaletteHotkey";
 import { useNewSessionHotkey } from "@/hooks/useNewSessionHotkey";
 import { useNewShellHotkey } from "@/hooks/useNewShellHotkey";
+import { useSettingsHotkey } from "@/hooks/useSettingsHotkey";
 import { useIsEmbedded } from "@/lib/embedded";
 import { AgentInfoContent, agentHasInfo } from "@/components/AgentInfo";
 import { useIdleNotifications } from "@/hooks/useIdleNotifications";
@@ -1561,6 +1562,7 @@ export function AppShell() {
     },
   );
   useNewSessionHotkey(!isEmbedded);
+  useSettingsHotkey();
 
   // Mobile back button: close the open file and return to the files/changes
   // list. On mobile the tab strip is hidden, so a "back" should fully drop the

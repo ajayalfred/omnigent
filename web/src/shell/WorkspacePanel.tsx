@@ -28,6 +28,7 @@ import {
   useState,
 } from "react";
 import { cn } from "@/lib/utils";
+import { ALT_KEY, CompactKbd, CompactShortcutKeys, MOD_KEY } from "@/components/KeyboardShortcut";
 import { defaultWorkspaceTabs, readDefaultWorkspaceTab } from "@/lib/workspaceTabPreferences";
 import { isEditorLevel, isOwnerLevel } from "@/lib/permissionsApi";
 import {
@@ -45,6 +46,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BrowserPane } from "@/components/BrowserPane/BrowserPane";
 import { useBrowserTabs } from "@/hooks/useBrowserTabs";
+import { useNewBrowserHotkey } from "@/hooks/useNewBrowserHotkey";
 import { useSideChats } from "@/hooks/useSideChats";
 import { SideChatPane } from "@/components/chat/SideChatPane";
 import { hasCommandModifier } from "@/lib/hotkeys";
@@ -69,6 +71,19 @@ import { Button } from "../components/ui/button";
 const TerminalView = lazy(() =>
   import("@/components/blocks/TerminalView").then((m) => ({ default: m.TerminalView })),
 );
+const WORKSPACE_OPEN_KEYS = [MOD_KEY, ALT_KEY, "]"] as const;
+const NEW_BROWSER_KEYS = [MOD_KEY, ALT_KEY, "B"] as const;
+const NEW_SHELL_KEYS = [MOD_KEY, ALT_KEY, "T"] as const;
+
+function WorkspaceMenuShortcut({
+  keys,
+  className,
+}: {
+  keys: readonly string[];
+  className?: string;
+}) {
+  return <CompactShortcutKeys keys={keys} className={className} />;
+}
 
 // Side-chat child ids opened in THIS app session. Module scope, so it resets on
 // reload/restart. A Codex side chat is an ephemeral thread-fork of the parent's
@@ -96,12 +111,15 @@ function WorkspaceTabTooltip({
       <TooltipContent side="bottom" className="flex items-center gap-1.5">
         <span>{label}</span>
         {shortcut && (
-          <kbd
-            data-slot="kbd"
-            className="inline-flex size-4 items-center justify-center rounded border border-border/80 bg-muted px-1 text-10 font-medium text-muted-foreground"
-          >
-            {shortcut}
-          </kbd>
+          <span className="flex items-center gap-1 whitespace-nowrap">
+            {WORKSPACE_OPEN_KEYS.map((key) => (
+              <CompactKbd key={key}>{key}</CompactKbd>
+            ))}
+            <span aria-hidden="true" className="text-muted-foreground/70">
+              +
+            </span>
+            <CompactKbd>{shortcut}</CompactKbd>
+          </span>
         )}
       </TooltipContent>
     </Tooltip>
@@ -243,9 +261,12 @@ function NewTabMenu({
       <span className="whitespace-nowrap">
         {isReconnecting ? "Reconnecting…" : `Shell (${defaultShell})`}
       </span>
-      {connectState === "offline" && (
-        <span className="ml-auto pl-4 text-sm text-muted-foreground">Offline</span>
-      )}
+      <span className="ml-auto flex items-center gap-2 pl-4">
+        {connectState === "offline" && (
+          <span className="text-sm text-muted-foreground">Offline</span>
+        )}
+        <WorkspaceMenuShortcut keys={NEW_SHELL_KEYS} />
+      </span>
     </>
   );
 
@@ -268,7 +289,7 @@ function NewTabMenu({
           default min-w-32 tracks the 32px "+" trigger and clips it. */}
       <DropdownMenuContent
         align="start"
-        className="min-w-44"
+        className="min-w-56"
         // On close, Radix restores focus to the "+" trigger, which re-opens its
         // tooltip for a frame before blur dismisses it — a visible flash after a
         // shell launch. Suppress the focus restore to keep the tooltip closed.
@@ -282,6 +303,7 @@ function NewTabMenu({
           <DropdownMenuItem onSelect={onOpenBrowser} className="cursor-pointer">
             <GlobeIcon className="size-4" />
             Browser
+            <WorkspaceMenuShortcut keys={NEW_BROWSER_KEYS} className="ml-auto pl-4" />
           </DropdownMenuItem>
         )}
         {onOpenSideChat && (
@@ -777,12 +799,11 @@ function WorkspacePanelImpl({
   }, [browsers.selected, rightRailTab]);
   const browserSelected =
     rightRailTab === "browser" && selectedFilePath === null && selectedTerminalKey === null;
-  const addBrowser = showBrowserTab
-    ? () => {
-        browsers.add();
-        onRightRailTabChange("browser");
-      }
-    : undefined;
+  const addBrowser = () => {
+    browsers.add();
+    onRightRailTabChange("browser");
+  };
+  useNewBrowserHotkey(addBrowser, showBrowserTab && !pending);
 
   // ── Side chats: rail tabs backed by forked child conversations. ──────────
   const sideChats = useSideChats(conversationId);
@@ -1274,7 +1295,7 @@ function WorkspacePanelImpl({
                 same gap the scroller's gap-0.5 gives between tabs. */}
               <NewTabMenu
                 conversationId={conversationId}
-                onOpenBrowser={addBrowser}
+                onOpenBrowser={showBrowserTab ? addBrowser : undefined}
                 onOpenSideChat={onNewSideChat}
                 onCreateError={onShellCreateFailed}
                 onOpenTerminal={openTerminalTab}
@@ -1291,7 +1312,7 @@ function WorkspacePanelImpl({
           {showEmptyNewTab && (
             <NewTabMenu
               conversationId={conversationId}
-              onOpenBrowser={addBrowser}
+              onOpenBrowser={showBrowserTab ? addBrowser : undefined}
               onOpenSideChat={onNewSideChat}
               onOpenTerminal={openTerminalTab}
               onCreateStart={onShellCreateStart}

@@ -72,9 +72,10 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: "General",
     items: [
-      { label: "Start a new session", keys: [MOD_KEY, "N"] },
+      { label: "Start a new session", keys: [MOD_KEY, ALT_KEY, "N"] },
       { label: "Open command palette", keys: [MOD_KEY, "K"] },
       { label: "Find a session by name", keys: [MOD_KEY, ALT_KEY, "S"] },
+      { label: "Open Settings", keys: [MOD_KEY, ALT_KEY, ","] },
       { label: "Show keyboard shortcuts", keys: [MOD_KEY, "/"] },
     ],
   },
@@ -106,6 +107,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
         keys: [MOD_KEY, ALT_KEY, "]", "1…5"],
         lastKeySeparator: "+",
       },
+      { label: "Open a new browser tab", keys: [MOD_KEY, ALT_KEY, "B"] },
       { label: "Open a new shell", keys: [MOD_KEY, ALT_KEY, "T"] },
     ],
   },
