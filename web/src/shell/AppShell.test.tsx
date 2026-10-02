@@ -2538,6 +2538,25 @@ describe("Extension pages own the header", () => {
 });
 
 describe("Right workspace card visibility", () => {
+  it("focuses the permanent tabs when the workspace is opened by hotkey", async () => {
+    writeWorkspacePanelDefault("collapsed");
+    useEnvironmentMock.mockReturnValue({
+      data: { available: true, root: null, home: null },
+      isLoading: false,
+    } as unknown as ReturnType<typeof useWorkspaceEnvironment>);
+    mockConversations([{ id: "conv_hotkey", permission_level: null }]);
+
+    renderShell("/c/conv_hotkey");
+    expect(screen.queryByRole("complementary", { name: "Workspace" })).toBeNull();
+
+    fireEvent.keyDown(document, { code: "BracketRight", ctrlKey: true, altKey: true });
+
+    const filesTab = await screen.findByRole("tab", { name: "Files" });
+    await waitFor(() => expect(filesTab).toHaveFocus());
+    fireEvent.keyDown(filesTab, { key: "2" });
+    expect(screen.getByTestId("files-panel")).toHaveAttribute("data-flat-view", "true");
+  });
+
   it("mounts an expandable pending card for a temporary session", () => {
     writeSessionWorkspaceState("temp:12345678", { open: true });
     mockConversations([{ id: "temp:12345678", permission_level: null, provisional: true }]);

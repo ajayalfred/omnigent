@@ -225,6 +225,51 @@ describe("WorkspacePanel surface presentation", () => {
     expect(onRightRailTabChange).toHaveBeenCalledWith("files");
   });
 
+  it("selects permanent tabs by their visible number while the tab strip is focused", () => {
+    writeDefaultWorkspaceTab("changes");
+    const { onRightRailTabChange } = renderWorkspace({
+      showGithubTab: true,
+      showBrowserTab: true,
+      rightRailTab: "changes",
+    });
+    const changes = screen.getByRole("tab", { name: "Changes" });
+
+    expect(changes).toHaveAttribute("aria-keyshortcuts", "1");
+    expect(screen.getByRole("tab", { name: "Files" })).toHaveAttribute("aria-keyshortcuts", "2");
+    expect(screen.getByRole("tab", { name: "Browser" })).toHaveAttribute("aria-keyshortcuts", "5");
+
+    fireEvent.keyDown(changes, { key: "2" });
+    fireEvent.keyDown(changes, { key: "5" });
+    fireEvent.keyDown(changes, { key: "4", ctrlKey: true, altKey: true });
+
+    expect(onRightRailTabChange).toHaveBeenNthCalledWith(1, "files");
+    expect(onRightRailTabChange).toHaveBeenNthCalledWith(2, "browser");
+    expect(onRightRailTabChange).toHaveBeenNthCalledWith(3, "subagents");
+  });
+
+  it("compresses numeric positions around unavailable permanent tabs", () => {
+    writeDefaultWorkspaceTab("github");
+    const { onRightRailTabChange } = renderWorkspace({ showGithubTab: false });
+    const files = screen.getByRole("tab", { name: "Files" });
+
+    expect(files).toHaveAttribute("aria-keyshortcuts", "1");
+    expect(screen.getByRole("tab", { name: "Changes" })).toHaveAttribute("aria-keyshortcuts", "2");
+    expect(screen.getByRole("tab", { name: "Agents 1" })).toHaveAttribute("aria-keyshortcuts", "3");
+
+    fireEvent.keyDown(files, { key: "3" });
+    expect(onRightRailTabChange).toHaveBeenCalledWith("subagents");
+  });
+
+  it("ignores modified digits and digits without a visible tab", () => {
+    const { onRightRailTabChange } = renderWorkspace();
+    const files = screen.getByRole("tab", { name: "Files" });
+
+    fireEvent.keyDown(files, { key: "2", metaKey: true });
+    fireEvent.keyDown(files, { key: "4" });
+
+    expect(onRightRailTabChange).not.toHaveBeenCalled();
+  });
+
   it("keeps the remaining order when the default tab is unavailable", () => {
     writeDefaultWorkspaceTab("github");
     renderWorkspace({ showGithubTab: false });
@@ -274,16 +319,21 @@ describe("WorkspacePanel surface presentation", () => {
   });
 
   it.each([
-    { tabName: "Files", tooltip: "Files" },
-    { tabName: "Changes", tooltip: "Changes" },
-    { tabName: "Agents 1", tooltip: "Agents" },
-  ])("explains the $tabName pane icon with a hover tooltip", async ({ tabName, tooltip }) => {
-    renderWorkspace();
+    { tabName: "Files", tooltip: "Files", shortcut: "1" },
+    { tabName: "Changes", tooltip: "Changes", shortcut: "2" },
+    { tabName: "Agents 1", tooltip: "Agents", shortcut: "3" },
+  ])(
+    "explains the $tabName pane icon and its number with a hover tooltip",
+    async ({ tabName, tooltip, shortcut }) => {
+      renderWorkspace();
 
-    const tab = screen.getByRole("tab", { name: tabName });
-    fireEvent.pointerMove(tab.parentElement!, { pointerType: "mouse" });
-    expect(await screen.findByRole("tooltip")).toHaveTextContent(tooltip);
-  });
+      const tab = screen.getByRole("tab", { name: tabName });
+      fireEvent.pointerMove(tab.parentElement!, { pointerType: "mouse" });
+      const tip = await screen.findByRole("tooltip");
+      expect(tip).toHaveTextContent(tooltip);
+      expect(tip.querySelector('[data-slot="kbd"]')).toHaveTextContent(shortcut);
+    },
+  );
 });
 
 describe("WorkspacePanel open-file tabs", () => {

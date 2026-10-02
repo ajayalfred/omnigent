@@ -107,6 +107,9 @@ describe("KeyboardShortcutsDialog", () => {
     expect(keysFor("Next session")).toEqual(["Ctrl", "]"]);
     expect(screen.getByText("Toggle conversations sidebar")).toBeTruthy();
     expect(screen.getByText("Open a new shell")).toBeTruthy();
+    const workspaceTabRow = screen.getByText("Select a workspace tab").closest("li");
+    expect(keysFor("Select a workspace tab")).toEqual(["Ctrl", "Alt", "]", "1…5"]);
+    expect(workspaceTabRow?.textContent?.match(/\+/g)).toHaveLength(1);
     expect(screen.getByText("Navigate suggestions")).toBeTruthy();
   });
 

@@ -450,6 +450,8 @@ export function AppShell() {
       ? (readSessionWorkspaceState(conversationId).open ?? readDefaultWorkspacePanelOpen())
       : false,
   );
+  const workspaceTabListRef = useRef<HTMLDivElement>(null);
+  const focusWorkspaceTabsOnOpenRef = useRef(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [forkOpen, setForkOpen] = useState(false);
   // Truncation point for a "fork from here" opened from a message's
@@ -1382,6 +1384,10 @@ export function AppShell() {
     }
     setRightPanelOpen(next);
   }, [rightPanelOpen, conversationId, selectedFilePath, clearFileViewerUrl, setSearchParams]);
+  const toggleRightPanelFromHotkey = useCallback(() => {
+    focusWorkspaceTabsOnOpenRef.current = !rightPanelOpen && !!conversationId && hasRailContent;
+    toggleRightPanel();
+  }, [rightPanelOpen, conversationId, hasRailContent, toggleRightPanel]);
 
   // The hotkey (⌘⌥[) and command-palette toggle for the left sidebar. A peeking
   // sidebar counts as open, so toggling collapses it; either way peek is
@@ -1518,7 +1524,7 @@ export function AppShell() {
   // here where both panels' open-state lives.
   useSidebarToggleHotkeys({
     onToggleLeft: toggleLeftSidebar,
-    onToggleRight: toggleRightPanel,
+    onToggleRight: toggleRightPanelFromHotkey,
   });
 
   // ⌘K (Ctrl+K) toggles the command palette. Bound capture-phase, so in the
@@ -2094,6 +2100,15 @@ export function AppShell() {
     !executionLogsOpen &&
     !filesPanelOpen,
   );
+  useEffect(() => {
+    if (!workspacePanelVisible || !focusWorkspaceTabsOnOpenRef.current) return;
+    focusWorkspaceTabsOnOpenRef.current = false;
+    const tabList = workspaceTabListRef.current;
+    const selectedTab = tabList?.querySelector<HTMLElement>(
+      `[data-workspace-tab="${rightRailTab}"]:not(:disabled)`,
+    );
+    (selectedTab ?? tabList?.querySelector<HTMLElement>('[role="tab"]:not(:disabled)'))?.focus();
+  }, [workspacePanelVisible, rightRailTab]);
 
   return (
     <FileViewerContext.Provider value={fileViewerContextValue}>
@@ -2328,6 +2343,7 @@ export function AppShell() {
                     resizing={inlinePanelResizing}
                     handleProps={inlinePanelHandleProps}
                     rightRailTab={rightRailTab}
+                    tabListRef={workspaceTabListRef}
                     onRightRailTabChange={handleRightRailTabChange}
                     showFilesPanel={showFilesPanel}
                     showGithubTab={railTabsAvailable.github}

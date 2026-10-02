@@ -16,7 +16,9 @@ import {
 import { toast } from "sonner";
 import {
   type CSSProperties,
+  type KeyboardEvent,
   type ReactElement,
+  type RefObject,
   lazy,
   memo,
   Suspense,
@@ -45,6 +47,7 @@ import { BrowserPane } from "@/components/BrowserPane/BrowserPane";
 import { useBrowserTabs } from "@/hooks/useBrowserTabs";
 import { useSideChats } from "@/hooks/useSideChats";
 import { SideChatPane } from "@/components/chat/SideChatPane";
+import { hasCommandModifier } from "@/lib/hotkeys";
 import { useChatStore } from "@/store/chatStore";
 import { SIDE_CHAT_COMMAND_PREFIX, supportsSideChat, usesNativeSideChatFork } from "@/lib/sideChat";
 import { createSideChat, stopSession } from "@/lib/sessionsApi";
@@ -76,10 +79,12 @@ const sideChatsStartedThisSession = new Set<string>();
 
 function WorkspaceTabTooltip({
   label,
+  shortcut,
   className,
   children,
 }: {
   label: string;
+  shortcut?: string;
   className?: string;
   children: ReactElement;
 }) {
@@ -88,7 +93,17 @@ function WorkspaceTabTooltip({
       <TooltipTrigger asChild>
         <span className={cn("inline-flex shrink-0", className)}>{children}</span>
       </TooltipTrigger>
-      <TooltipContent side="bottom">{label}</TooltipContent>
+      <TooltipContent side="bottom" className="flex items-center gap-1.5">
+        <span>{label}</span>
+        {shortcut && (
+          <kbd
+            data-slot="kbd"
+            className="inline-flex size-4 items-center justify-center rounded border border-border/80 bg-muted px-1 text-10 font-medium text-muted-foreground"
+          >
+            {shortcut}
+          </kbd>
+        )}
+      </TooltipContent>
     </Tooltip>
   );
 }
@@ -607,6 +622,8 @@ interface WorkspacePanelProps {
   handleProps: React.HTMLAttributes<HTMLDivElement> & { tabIndex: number };
   /** Selected rail tab, e.g. ``"files"``. */
   rightRailTab: RightRailTab;
+  /** Tab-strip ref used to move focus into a keyboard-opened rail. */
+  tabListRef?: RefObject<HTMLDivElement | null>;
   /**
    * Switch rail tabs. AppShell owns the side effects (clearing any open
    * file + its comments + URL) so they can't drift from the tab state.
@@ -716,6 +733,7 @@ function WorkspacePanelImpl({
   open = true,
   resizing = false,
   rightRailTab,
+  tabListRef,
   onRightRailTabChange,
   showFilesPanel,
   showGithubTab,
@@ -917,12 +935,43 @@ function WorkspacePanelImpl({
     : handleProps;
   const defaultTab = readDefaultWorkspaceTab();
   const tabOrder = [defaultTab, ...defaultWorkspaceTabs.filter((tab) => tab !== defaultTab)];
+  const visiblePermanentTabs: RightRailTab[] = [
+    ...tabOrder.filter((tab) => {
+      if (tab === "subagents") return true;
+      if (tab === "github") return pending || showGithubTab;
+      return pending || showFilesPanel;
+    }),
+    ...(showBrowserTab ? (["browser"] as const) : []),
+  ];
+  const shortcutFor = (tab: RightRailTab) => {
+    const index = visiblePermanentTabs.indexOf(tab);
+    return index === -1 ? undefined : String(index + 1);
+  };
+  const selectPermanentTab = (tab: RightRailTab) => {
+    if (tab === "browser") browsers.select(null);
+    onRightRailTabChange(tab);
+  };
+  const handlePermanentTabNumber = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (pending || event.repeat || event.shiftKey || !/^[1-9]$/.test(event.key)) return;
+    const modified = event.metaKey || event.ctrlKey || event.altKey;
+    if (modified && (!hasCommandModifier(event.nativeEvent) || !event.altKey)) return;
+    if (typeof event.getModifierState === "function" && event.getModifierState("AltGraph")) {
+      return;
+    }
+    const tab = visiblePermanentTabs[Number(event.key) - 1];
+    if (!tab) return;
+    event.preventDefault();
+    event.stopPropagation();
+    selectPermanentTab(tab);
+  };
   const tabTriggers = {
     files: (pending || showFilesPanel) && (
-      <WorkspaceTabTooltip key="files" label="Files">
+      <WorkspaceTabTooltip key="files" label="Files" shortcut={shortcutFor("files")}>
         <TabsTrigger
           value="files"
           aria-label="Files"
+          aria-keyshortcuts={shortcutFor("files")}
+          data-workspace-tab="files"
           disabled={pending}
           className="size-6 shrink-0 p-0 hover:border-1 hover:border-muted rounded-md!"
         >
@@ -932,10 +981,12 @@ function WorkspacePanelImpl({
       </WorkspaceTabTooltip>
     ),
     changes: (pending || showFilesPanel) && (
-      <WorkspaceTabTooltip key="changes" label="Changes">
+      <WorkspaceTabTooltip key="changes" label="Changes" shortcut={shortcutFor("changes")}>
         <TabsTrigger
           value="changes"
           aria-label={changedCount > 0 ? `Changes ${changedCount} changed` : "Changes"}
+          aria-keyshortcuts={shortcutFor("changes")}
+          data-workspace-tab="changes"
           disabled={pending}
           className="size-6 shrink-0 p-0 hover:border-1 hover:border-muted rounded-md!"
         >
@@ -946,10 +997,12 @@ function WorkspacePanelImpl({
       </WorkspaceTabTooltip>
     ),
     github: (pending || showGithubTab) && (
-      <WorkspaceTabTooltip key="github" label="GitHub">
+      <WorkspaceTabTooltip key="github" label="GitHub" shortcut={shortcutFor("github")}>
         <TabsTrigger
           value="github"
           aria-label="GitHub"
+          aria-keyshortcuts={shortcutFor("github")}
+          data-workspace-tab="github"
           disabled={pending}
           className="size-6 shrink-0 p-0 hover:border-1 hover:border-muted rounded-md!"
         >
@@ -959,10 +1012,12 @@ function WorkspacePanelImpl({
       </WorkspaceTabTooltip>
     ),
     subagents: (
-      <WorkspaceTabTooltip key="subagents" label="Agents">
+      <WorkspaceTabTooltip key="subagents" label="Agents" shortcut={shortcutFor("subagents")}>
         <TabsTrigger
           value="subagents"
           disabled={pending}
+          aria-keyshortcuts={shortcutFor("subagents")}
+          data-workspace-tab="subagents"
           aria-label={
             subagentsWorking > 0
               ? `Agents ${subagentsWorking}/${agentCount}`
@@ -1048,7 +1103,10 @@ function WorkspacePanelImpl({
           horizontal scroller — see below). The outer row never scrolls
           (overflow-x-hidden), so the divider is a fixed boundary that doesn't
           drift when the tabs scroll. */}
-        <div className="workspace-tab-strip shrink-0 flex items-center overflow-x-hidden border-b border-border px-2 py-3">
+        <div
+          ref={tabListRef}
+          className="workspace-tab-strip shrink-0 flex items-center overflow-x-hidden border-b border-border px-2 py-3"
+        >
           <Tabs
             // Static group — never compresses (shrink-0) and stays anchored on
             // the LEFT whether or not tabs are open. The open tabs render to its
@@ -1071,19 +1129,18 @@ function WorkspacePanelImpl({
                   ? "__tab__"
                   : rightRailTab
             }
-            onValueChange={(value) => {
-              if (value === "browser") browsers.select(null);
-              onRightRailTabChange(value as RightRailTab);
-            }}
+            onValueChange={(value) => selectPermanentTab(value as RightRailTab)}
             componentId="chat.right_rail.tabs"
           >
-            <TabsList variant="pill" className="gap-1">
+            <TabsList variant="pill" className="gap-1" onKeyDown={handlePermanentTabNumber}>
               {tabOrder.map((tab) => tabTriggers[tab])}
               {showBrowserTab && (
-                <WorkspaceTabTooltip label="Browser">
+                <WorkspaceTabTooltip label="Browser" shortcut={shortcutFor("browser")}>
                   <TabsTrigger
                     value="browser"
                     aria-label="Browser"
+                    aria-keyshortcuts={shortcutFor("browser")}
+                    data-workspace-tab="browser"
                     disabled={pending}
                     className="size-6 shrink-0 p-0 hover:border-1 hover:border-muted rounded-md!"
                   >

@@ -9,7 +9,7 @@
 // (a window keydown for ⌘/Ctrl+/, plus a custom event so a menu entry can open
 // it without prop-drilling). Mount it once near the app shell.
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import {
   ALT_KEY,
@@ -56,6 +56,7 @@ interface Shortcut {
   /** Keys rendered left→right as chips. A chord (held together) or, for the
    *  arrow-pairs, the two interchangeable keys for that action. */
   keys: string[];
+  lastKeySeparator?: string;
 }
 
 interface ShortcutGroup {
@@ -100,6 +101,11 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     items: [
       { label: "Toggle conversations sidebar", keys: [MOD_KEY, ALT_KEY, "["] },
       { label: "Toggle workspace sidebar", keys: [MOD_KEY, ALT_KEY, "]"] },
+      {
+        label: "Select a workspace tab",
+        keys: [MOD_KEY, ALT_KEY, "]", "1…5"],
+        lastKeySeparator: "+",
+      },
       { label: "Open a new shell", keys: [MOD_KEY, ALT_KEY, "T"] },
     ],
   },
@@ -204,8 +210,15 @@ export function KeyboardShortcutsList({
               >
                 <span className="text-ui text-foreground">{item.label}</span>
                 <span className="flex shrink-0 items-center gap-1">
-                  {item.keys.map((key) => (
-                    <Kbd key={`${item.label}-${key}`}>{key}</Kbd>
+                  {item.keys.map((key, index) => (
+                    <Fragment key={`${item.label}-${key}`}>
+                      {index === item.keys.length - 1 && item.lastKeySeparator ? (
+                        <span aria-hidden="true" className="text-muted-foreground/70">
+                          {item.lastKeySeparator}
+                        </span>
+                      ) : null}
+                      <Kbd>{key}</Kbd>
+                    </Fragment>
                   ))}
                 </span>
               </li>
