@@ -1158,6 +1158,10 @@ function WorkspacePanelImpl({
           drift when the tabs scroll. */}
         <div
           ref={tabListRef}
+          role="toolbar"
+          aria-label="Workspace tabs"
+          tabIndex={-1}
+          onKeyDown={handlePermanentTabNumber}
           className="workspace-tab-strip shrink-0 flex items-center overflow-x-hidden border-b border-border px-2 py-3"
         >
           <Tabs
@@ -1185,7 +1189,7 @@ function WorkspacePanelImpl({
             onValueChange={(value) => selectPermanentTab(value as RightRailTab)}
             componentId="chat.right_rail.tabs"
           >
-            <TabsList variant="pill" className="gap-1" onKeyDown={handlePermanentTabNumber}>
+            <TabsList variant="pill" className="gap-1">
               {tabOrder.map((tab) => tabTriggers[tab])}
             </TabsList>
           </Tabs>

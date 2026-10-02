@@ -2539,7 +2539,7 @@ describe("Extension pages own the header", () => {
 });
 
 describe("Right workspace card visibility", () => {
-  it("focuses the permanent tabs when the workspace is opened by hotkey", async () => {
+  it("focuses the tab strip without replacing its selected soft tab", async () => {
     writeWorkspacePanelDefault("collapsed");
     useEnvironmentMock.mockReturnValue({
       data: { available: true, root: null, home: null },
@@ -2557,12 +2557,19 @@ describe("Right workspace card visibility", () => {
     fireEvent.keyDown(filesTab, { key: "2" });
     expect(screen.getByTestId("files-panel")).toHaveAttribute("data-flat-view", "true");
 
+    fireEvent.click(screen.getByRole("button", { name: "files: select README.md" }));
+    const fileTab = screen.getByTitle("README.md");
+    expect(screen.getByTestId("file-viewer-inline")).toHaveAttribute("data-path", "README.md");
+    expect(screen.getByTestId("url-params")).toHaveTextContent("file=README.md");
+
     screen.getByRole("button", { name: "Collapse right panel" }).focus();
     fireEvent.keyDown(document, { code: "BracketRight", ctrlKey: true, altKey: true });
 
-    const changesTab = screen.getByRole("tab", { name: "Changes" });
     expect(screen.getByRole("complementary", { name: "Workspace" })).toBeInTheDocument();
-    await waitFor(() => expect(changesTab).toHaveFocus());
+    await waitFor(() => expect(fileTab).toHaveFocus());
+    expect(screen.getByTestId("file-viewer-inline")).toHaveAttribute("data-path", "README.md");
+    expect(screen.getByTestId("url-params")).toHaveTextContent("file=README.md");
+    expect(filesTab).toHaveAttribute("aria-selected", "false");
 
     fireEvent.keyDown(document, { code: "BracketRight", ctrlKey: true, altKey: true });
     expect(screen.queryByRole("complementary", { name: "Workspace" })).toBeNull();
@@ -2587,6 +2594,41 @@ describe("Right workspace card visibility", () => {
 
       fireEvent.keyDown(window, { code: "KeyB", ctrlKey: true, altKey: true });
 
+      expect(await screen.findByRole("tab", { name: "Browser 1" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      expect(screen.getByRole("complementary", { name: "Workspace" })).toBeInTheDocument();
+    } finally {
+      cleanup();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("reveals a Browser tab over an open Terminal panel", async () => {
+    vi.stubGlobal("omnigentDesktop", {
+      kind: "electron",
+      browserOpenOrNavigate: vi.fn(),
+      setBadgeCount: vi.fn(),
+    });
+    sessionStorage.setItem(
+      "omnigent.web.panel-key:conv_browser_terminal",
+      "terminal:terminal_main",
+    );
+    useEnvironmentMock.mockReturnValue({
+      data: { available: true, root: null, home: null },
+      isLoading: false,
+    } as unknown as ReturnType<typeof useWorkspaceEnvironment>);
+    mockConversations([{ id: "conv_browser_terminal", permission_level: null }]);
+
+    try {
+      renderShell("/c/conv_browser_terminal");
+      expect(screen.getByTestId("terminals-panel")).toHaveAttribute("data-state", "open");
+      expect(screen.queryByRole("complementary", { name: "Workspace" })).toBeNull();
+
+      fireEvent.keyDown(window, { code: "KeyB", ctrlKey: true, altKey: true });
+
+      expect(screen.getByTestId("terminals-panel")).toHaveAttribute("data-state", "closed");
       expect(await screen.findByRole("tab", { name: "Browser 1" })).toHaveAttribute(
         "aria-selected",
         "true",

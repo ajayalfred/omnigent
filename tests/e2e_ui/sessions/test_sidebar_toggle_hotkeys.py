@@ -3,8 +3,8 @@
 Covers ``useSidebarToggleHotkeys`` (``web/src/hooks/useSidebarToggleHotkeys.ts``),
 wired in ``AppShell``: a window-level keydown listener flips the left
 (Conversations) sidebar on ⌘/Ctrl + ⌥/Alt + ``[``. The right (Workspace) rail
-opens or focuses on ⌘/Ctrl + ⌥/Alt + ``]`` and closes when focus is inside it.
-The hook matches the physical ``e.code``
+opens or focuses on ⌘/Ctrl + ⌥/Alt + ``]`` and closes when focus is inside its
+tab strip. The hook matches the physical ``e.code``
 (``BracketLeft`` / ``BracketRight``) rather than the character, because ⌥ on
 macOS turns ``[``/``]`` into ``“``/``‘`` — only a code match survives the
 modifier. CI runs Linux chromium, so this presses the ``Control+Alt`` chord
@@ -89,11 +89,11 @@ def test_sidebar_toggle_hotkeys(
     expect(workspace).to_be_visible()
     expect(workspace.locator("[data-workspace-tab]:focus")).to_have_count(1)
 
-    # With focus already inside the rail, the same chord closes it.
+    # With focus already inside the tab strip, the same chord closes it.
     page.keyboard.press(_RIGHT_CHORD)
     expect(workspace).to_have_count(0)
 
-    # The chord brings it back and restores focus to the permanent tabs.
+    # The chord brings it back and restores focus to the tab strip.
     page.keyboard.press(_RIGHT_CHORD)
     expect(workspace).to_be_visible()
     expect(workspace.locator("[data-workspace-tab]:focus")).to_have_count(1)

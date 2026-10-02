@@ -1450,10 +1450,10 @@ export function AppShell() {
   const focusWorkspaceTabs = useCallback(() => {
     const tabList = workspaceTabListRef.current;
     const selectedTab = tabList?.querySelector<HTMLElement>(
-      `[data-workspace-tab="${rightRailTab}"]:not(:disabled)`,
+      '[role="tab"][aria-selected="true"], [role="button"][aria-current="true"]',
     );
-    (selectedTab ?? tabList?.querySelector<HTMLElement>('[role="tab"]:not(:disabled)'))?.focus();
-  }, [rightRailTab]);
+    (selectedTab ?? tabList)?.focus();
+  }, []);
   const toggleRightPanelFromHotkey = useCallback(() => {
     if (rightPanelOpen && workspaceTabListRef.current?.contains(document.activeElement)) {
       focusWorkspaceTabsOnOpenRef.current = false;
@@ -1468,11 +1468,21 @@ export function AppShell() {
     toggleRightPanel();
   }, [rightPanelOpen, conversationId, hasRailContent, focusWorkspaceTabs, toggleRightPanel]);
   const revealRightPanel = useCallback(() => {
-    if (!conversationId || rightPanelOpen) return;
+    if (!conversationId) return;
+    if (!terminalFirst) setPanelInitialKey(null);
+    setExecutionLogsKey(null);
+    setFilesPanelOpen(false);
+    if (rightPanelOpen) return;
     writeSessionWorkspaceState(conversationId, { open: true });
     writeDefaultWorkspacePanelOpen(true);
     setRightPanelOpenAnimated(true);
-  }, [conversationId, rightPanelOpen, setRightPanelOpenAnimated]);
+  }, [
+    conversationId,
+    rightPanelOpen,
+    setPanelInitialKey,
+    setRightPanelOpenAnimated,
+    terminalFirst,
+  ]);
 
   // The hotkey (⌘⌥[) and command-palette toggle for the left sidebar. A peeking
   // sidebar counts as open, so toggling collapses it; either way peek is
