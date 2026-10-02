@@ -1454,19 +1454,6 @@ export function AppShell() {
     );
     (selectedTab ?? tabList)?.focus();
   }, []);
-  const toggleRightPanelFromHotkey = useCallback(() => {
-    if (rightPanelOpen && workspaceTabListRef.current?.contains(document.activeElement)) {
-      focusWorkspaceTabsOnOpenRef.current = false;
-      toggleRightPanel();
-      return;
-    }
-    if (rightPanelOpen) {
-      focusWorkspaceTabs();
-      return;
-    }
-    focusWorkspaceTabsOnOpenRef.current = !!conversationId && hasRailContent;
-    toggleRightPanel();
-  }, [rightPanelOpen, conversationId, hasRailContent, focusWorkspaceTabs, toggleRightPanel]);
   const revealRightPanel = useCallback(() => {
     if (!conversationId) return;
     if (!terminalFirst) setPanelInitialKey(null);
@@ -1482,6 +1469,37 @@ export function AppShell() {
     setPanelInitialKey,
     setRightPanelOpenAnimated,
     terminalFirst,
+  ]);
+  const toggleRightPanelFromHotkey = useCallback(() => {
+    if (rightPanelOpen && workspaceTabListRef.current?.contains(document.activeElement)) {
+      focusWorkspaceTabsOnOpenRef.current = false;
+      toggleRightPanel();
+      return;
+    }
+    const hiddenByCompetingPanel =
+      (!terminalFirst && panelOpen) || executionLogsOpen || filesPanelOpen;
+    if (hiddenByCompetingPanel) {
+      focusWorkspaceTabsOnOpenRef.current = !!conversationId && hasRailContent;
+      revealRightPanel();
+      return;
+    }
+    if (rightPanelOpen) {
+      focusWorkspaceTabs();
+      return;
+    }
+    focusWorkspaceTabsOnOpenRef.current = !!conversationId && hasRailContent;
+    toggleRightPanel();
+  }, [
+    rightPanelOpen,
+    terminalFirst,
+    panelOpen,
+    executionLogsOpen,
+    filesPanelOpen,
+    conversationId,
+    hasRailContent,
+    revealRightPanel,
+    focusWorkspaceTabs,
+    toggleRightPanel,
   ]);
 
   // The hotkey (⌘⌥[) and command-palette toggle for the left sidebar. A peeking
