@@ -285,6 +285,9 @@ contextBridge.exposeInMainWorld("omnigentDesktop", {
     ipcRenderer.on("browser-recent-session-input", listener);
     return () => ipcRenderer.removeListener("browser-recent-session-input", listener);
   },
+  /** Enable native Ctrl+Tab forwarding only while this renderer supports it. */
+  browserSetRecentSessionSwitchSupported: (supported) =>
+    ipcRenderer.invoke("omnigent:browser-set-recent-session-switch-supported", { supported }),
   /** Clear the native Ctrl+Tab latch when the renderer has no sessions to show. */
   browserCancelRecentSessionSwitch: () =>
     ipcRenderer.invoke("omnigent:browser-cancel-recent-session-switch"),

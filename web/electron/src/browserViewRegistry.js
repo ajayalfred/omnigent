@@ -87,6 +87,7 @@ function createBrowserViewRegistry({
   // layer, which always paints above the renderer regardless of z-index. Sticky
   // across attaches: a view that becomes active while suppressed stays hidden.
   let overlaySuppressed = false;
+  let recentSessionSwitchSupported = false;
 
   // Apply the current suppress flag to the active view (no-op with none active).
   function applyActiveVisibility() {
@@ -313,10 +314,19 @@ function createBrowserViewRegistry({
     return { ok: true };
   }
 
+  function setRecentSessionSwitchSupported(supported) {
+    recentSessionSwitchSupported = !!supported;
+    if (!recentSessionSwitchSupported) {
+      entries.forEach((entry) => cancelRecentSessionInput(entry, false));
+    }
+    return { ok: true };
+  }
+
   function attachRecentSessionInput(entry) {
     const wc = entry.view && entry.view.webContents;
     if (!wc || typeof wc.on !== "function") return;
     wc.on("before-input-event", (event, input) => {
+      if (!recentSessionSwitchSupported) return;
       const type =
         input && input.type === "keyDown"
           ? "keydown"
@@ -531,6 +541,7 @@ function createBrowserViewRegistry({
     setActive,
     setSuppressed,
     cancelRecentSessionSwitch,
+    setRecentSessionSwitchSupported,
     close,
     closeAll,
     // Introspection

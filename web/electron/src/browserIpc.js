@@ -325,8 +325,15 @@ function registerBrowserIpc({ ipcMain, isPinnedOriginSender, getRegistryForEvent
     return { ok: r.ok, error: r.error };
   });
 
-  // The renderer can decline a forwarded Ctrl+Tab when no sessions are
-  // available. Clear the native input latch so later page keys stay local.
+  // Intercept embedded-page Ctrl+Tab only while a compatible renderer is
+  // subscribed; older server UIs must retain ownership of the shortcut.
+  ipcMain.handle("omnigent:browser-set-recent-session-switch-supported", (event, args) => {
+    const g = gateRegistry(event);
+    if (g.error) return { ok: false, error: g.error };
+    return g.registry.setRecentSessionSwitchSupported(!!args?.supported);
+  });
+
+  // A supported renderer can still decline the gesture when no sessions exist.
   ipcMain.handle("omnigent:browser-cancel-recent-session-switch", (event) => {
     const g = gateRegistry(event);
     if (g.error) return { ok: false, error: g.error };

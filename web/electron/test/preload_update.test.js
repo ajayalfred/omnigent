@@ -82,4 +82,18 @@ describe("server-page update bridge", () => {
       h.invokes.some(({ channel }) => channel === "omnigent:browser-cancel-recent-session-switch"),
     );
   });
+
+  it("advertises recent-session switch support to the main process", async () => {
+    const h = loadPreload();
+
+    await h.desktop.browserSetRecentSessionSwitchSupported(true);
+    await h.desktop.browserSetRecentSessionSwitchSupported(false);
+
+    assert.deepEqual(
+      h.invokes
+        .filter(({ channel }) => channel === "omnigent:browser-set-recent-session-switch-supported")
+        .map(({ args }) => args.supported),
+      [true, false],
+    );
+  });
 });

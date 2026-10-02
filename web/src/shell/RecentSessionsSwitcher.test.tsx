@@ -145,12 +145,14 @@ describe("RecentSessionsSwitcher", () => {
   it("switches from keyboard input forwarded by an embedded Browser page", () => {
     let forwardInput: ((input: Record<string, unknown>) => void) | undefined;
     const unsubscribe = vi.fn();
+    const setSupported = vi.fn().mockResolvedValue({ ok: true });
     (window as unknown as Record<string, unknown>).omnigentDesktop = {
       kind: "electron",
       onBrowserRecentSessionInput: (callback: (input: Record<string, unknown>) => void) => {
         forwardInput = callback;
         return unsubscribe;
       },
+      browserSetRecentSessionSwitchSupported: setSupported,
     };
     render(
       <RecentSessionsSwitcher
@@ -159,6 +161,7 @@ describe("RecentSessionsSwitcher", () => {
         enabled
       />,
     );
+    expect(setSupported).toHaveBeenCalledWith(true);
 
     act(() => {
       forwardInput?.({
@@ -190,6 +193,7 @@ describe("RecentSessionsSwitcher", () => {
     expect(navigate).toHaveBeenCalledWith("/c/one");
     cleanup();
     expect(unsubscribe).toHaveBeenCalledOnce();
+    expect(setSupported).toHaveBeenLastCalledWith(false);
   });
 
   it("releases native interception when a forwarded gesture has no sessions", () => {

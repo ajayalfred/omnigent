@@ -225,6 +225,10 @@ interface ElectronDesktopApi extends NativeShellApi {
   onBrowserRecentSessionInput?: (
     callback: (input: BrowserRecentSessionInput) => void,
   ) => () => void;
+  /** Enable native input interception only while this renderer supports it. */
+  browserSetRecentSessionSwitchSupported?: (
+    supported: boolean,
+  ) => Promise<{ ok: boolean; error?: string }>;
   /** Clear native key interception when the recent-session gesture was declined. */
   browserCancelRecentSessionSwitch?: () => Promise<{ ok: boolean; error?: string }>;
 }
@@ -502,6 +506,17 @@ export function onBrowserRecentSessionInput(
   } catch (err) {
     console.warn("[nativeBridge] browser recent-session input subscription failed:", err);
     return () => {};
+  }
+}
+
+/** Advertise whether this renderer can handle embedded-page Ctrl+Tab events. */
+export async function setBrowserRecentSessionSwitchSupported(supported: boolean): Promise<void> {
+  const electron = electronApi();
+  if (!electron?.browserSetRecentSessionSwitchSupported) return;
+  try {
+    await electron.browserSetRecentSessionSwitchSupported(supported);
+  } catch (err) {
+    console.warn("[nativeBridge] browser recent-session support update failed:", err);
   }
 }
 

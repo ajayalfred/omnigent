@@ -111,6 +111,7 @@ function makeRegistry(conversationId, webContents) {
   const entries = new Map();
   if (conversationId) entries.set(conversationId, { view: { webContents } });
   const suppressedCalls = []; // booleans passed to setSuppressed, in order
+  const recentSessionSupportCalls = [];
   let recentSessionCancelCount = 0;
   return {
     get: (id) => entries.get(id) ?? null,
@@ -130,8 +131,13 @@ function makeRegistry(conversationId, webContents) {
       recentSessionCancelCount += 1;
       return { ok: true };
     },
+    setRecentSessionSwitchSupported: (supported) => {
+      recentSessionSupportCalls.push(supported);
+      return { ok: true };
+    },
     close: () => ({ ok: true, removed: true }),
     suppressedCalls,
+    recentSessionSupportCalls,
     recentSessionCancelCount: () => recentSessionCancelCount,
   };
 }
@@ -178,6 +184,7 @@ describe("browserIpc — trust gate", () => {
       "omnigent:browser-open-or-navigate",
       "omnigent:browser-set-active",
       "omnigent:browser-set-suppressed",
+      "omnigent:browser-set-recent-session-switch-supported",
       "omnigent:browser-cancel-recent-session-switch",
       "omnigent:browser-resize",
       "omnigent:browser-screenshot",
@@ -233,6 +240,18 @@ describe("browserIpc — overlay suppression (#3980)", () => {
 });
 
 describe("browserIpc — recent-session cancellation", () => {
+  it("tracks whether the trusted renderer supports native forwarding", async () => {
+    const { ipcMain, registry, event } = setup();
+    await ipcMain.invoke("omnigent:browser-set-recent-session-switch-supported", event, {
+      supported: true,
+    });
+    await ipcMain.invoke("omnigent:browser-set-recent-session-switch-supported", event, {
+      supported: false,
+    });
+
+    assert.deepEqual(registry.recentSessionSupportCalls, [true, false]);
+  });
+
   it("clears the registry latch for a trusted renderer", async () => {
     const { ipcMain, registry, event } = setup();
     const result = await ipcMain.invoke("omnigent:browser-cancel-recent-session-switch", event);
@@ -243,10 +262,20 @@ describe("browserIpc — recent-session cancellation", () => {
 
   it("rejects an unpinned sender", async () => {
     const { ipcMain, registry, event } = setup({ pinned: false });
-    const result = await ipcMain.invoke("omnigent:browser-cancel-recent-session-switch", event);
+    const cancelResult = await ipcMain.invoke(
+      "omnigent:browser-cancel-recent-session-switch",
+      event,
+    );
+    const supportResult = await ipcMain.invoke(
+      "omnigent:browser-set-recent-session-switch-supported",
+      event,
+      { supported: true },
+    );
 
-    assert.equal(result.ok, false);
+    assert.equal(cancelResult.ok, false);
+    assert.equal(supportResult.ok, false);
     assert.equal(registry.recentSessionCancelCount(), 0);
+    assert.deepEqual(registry.recentSessionSupportCalls, []);
   });
 });
 

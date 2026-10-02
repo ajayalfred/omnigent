@@ -3,7 +3,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { Conversation } from "@/hooks/useConversations";
-import { cancelBrowserRecentSessionSwitch, onBrowserRecentSessionInput } from "@/lib/nativeBridge";
+import {
+  cancelBrowserRecentSessionSwitch,
+  onBrowserRecentSessionInput,
+  setBrowserRecentSessionSwitchSupported,
+} from "@/lib/nativeBridge";
 import { useNavigate } from "@/lib/routing";
 
 import { conversationDisplayLabel, getConversationAgentType } from "./sidebarNav";
@@ -162,6 +166,7 @@ export function RecentSessionsSwitcher({
         void cancelBrowserRecentSessionSwitch();
       }
     });
+    void setBrowserRecentSessionSwitchSupported(true);
 
     window.addEventListener("keydown", onKeyDown, true);
     window.addEventListener("keyup", onKeyUp, true);
@@ -171,6 +176,7 @@ export function RecentSessionsSwitcher({
       window.removeEventListener("keyup", onKeyUp, true);
       window.removeEventListener("blur", onBlur);
       unsubscribeBrowserInput();
+      void setBrowserRecentSessionSwitchSupported(false);
     };
   }, [cancel, commit, enabled, setSelection]);
 
