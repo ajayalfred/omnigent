@@ -155,30 +155,34 @@ describe("browserViewRegistry — first-navigate activation signal", () => {
   });
 });
 
+function makeRecentSessionInputRegistry({ isHostFocused = () => true } = {}) {
+  const listeners = new Map();
+  const sent = [];
+  const webContents = {
+    loadURL() {},
+    close() {},
+    removeListener() {},
+    on(name, listener) {
+      listeners.set(name, listener);
+    },
+    setWindowOpenHandler() {},
+  };
+  const registry = createBrowserViewRegistry({
+    WebContentsViewCtor: () => ({ setBounds() {}, webContents }),
+    createBoundsController: createBrowserViewBoundsController,
+    attachToHost() {},
+    detachFromHost() {},
+    sendToRenderer: (channel, payload) => sent.push({ channel, payload }),
+    isHostFocused,
+  });
+  registry.openOrNavigate("conv_1", "https://example.com");
+  return { registry, listeners, sent };
+}
+
 describe("browserViewRegistry — recent-session input forwarding", () => {
   it("forwards Ctrl+Tab, Control release, and Escape from an embedded page", () => {
-    const listeners = new Map();
-    const sent = [];
-    const webContents = {
-      loadURL() {},
-      close() {},
-      removeListener() {},
-      on(name, listener) {
-        listeners.set(name, listener);
-      },
-      setWindowOpenHandler() {},
-    };
-    const registry = createBrowserViewRegistry({
-      WebContentsViewCtor: () => ({ setBounds() {}, webContents }),
-      createBoundsController: createBrowserViewBoundsController,
-      attachToHost() {},
-      detachFromHost() {},
-      sendToRenderer: (channel, payload) => sent.push({ channel, payload }),
-    });
-    registry.openOrNavigate("conv_1", "https://example.com");
+    const { listeners, sent } = makeRecentSessionInputRegistry();
     const forward = listeners.get("before-input-event");
-    assert.equal(typeof forward, "function");
-
     const prevented = [];
     const event = () => ({ preventDefault: () => prevented.push(true) });
     forward(event(), { type: "keyDown", key: "Tab", code: "Tab", control: false });
@@ -220,6 +224,27 @@ describe("browserViewRegistry — recent-session input forwarding", () => {
       ],
     );
     assert.equal(prevented.length, 3, "claim Tab and Escape keydowns, not Control release");
+  });
+
+  it("clears a pending switch on focus loss without intercepting a later Escape", () => {
+    let hostFocused = true;
+    const { listeners, sent } = makeRecentSessionInputRegistry({
+      isHostFocused: () => hostFocused,
+    });
+    const forward = listeners.get("before-input-event");
+    const blur = listeners.get("blur");
+    const prevented = [];
+    const event = () => ({ preventDefault: () => prevented.push(true) });
+
+    forward(event(), { type: "keyDown", key: "Tab", code: "Tab", control: true });
+    hostFocused = false;
+    blur();
+    const countAfterBlur = sent.length;
+    forward(event(), { type: "keyDown", key: "Escape", code: "Escape", control: false });
+
+    assert.equal(prevented.length, 1, "only Ctrl+Tab is claimed");
+    assert.equal(sent.length, countAfterBlur, "ordinary Escape is not forwarded");
+    assert.equal(sent.at(-1).payload.key, "Escape", "focus loss cancels the renderer switcher");
   });
 });
 

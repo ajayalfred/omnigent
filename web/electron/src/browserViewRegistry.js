@@ -68,6 +68,7 @@ function createBrowserViewRegistry({
   sendToRenderer, // (channel, payload) => mainWindow.webContents.send(...)
   getHostZoomFactor = () => 1,
   getHostDisplayScaleFactor = () => null,
+  isHostFocused = () => true,
   // Desktop affordances for the pane's context menu; injected so the registry
   // stays Electron-free. No-op defaults keep tests and non-menu hosts simple.
   openUrlExternal = () => {}, // (url) => shell.openExternal(url)
@@ -141,6 +142,7 @@ function createBrowserViewRegistry({
       designModeListener: null,
       designModeInputListener: null,
       designModeWebContents: null,
+      recentSessionSwitching: false,
     };
     return entry;
   }
@@ -287,10 +289,26 @@ function createBrowserViewRegistry({
   // The embedded page owns a separate WebContents, so Ctrl+Tab never reaches
   // the shell renderer's window listener. Forward only the recent-session
   // gesture; all other page keyboard input remains local to the page.
+  function cancelRecentSessionInput(entry, notifyRenderer) {
+    if (!entry.recentSessionSwitching) return;
+    entry.recentSessionSwitching = false;
+    if (notifyRenderer) {
+      sendToRenderer("browser-recent-session-input", {
+        type: "keydown",
+        key: "Escape",
+        code: "Escape",
+        ctrlKey: false,
+        shiftKey: false,
+        altKey: false,
+        metaKey: false,
+        repeat: false,
+      });
+    }
+  }
+
   function attachRecentSessionInput(entry) {
     const wc = entry.view && entry.view.webContents;
     if (!wc || typeof wc.on !== "function") return;
-    let switching = false;
     wc.on("before-input-event", (event, input) => {
       const type =
         input && input.type === "keyDown"
@@ -302,8 +320,10 @@ function createBrowserViewRegistry({
       const key = input.key || "";
       const startsSwitching =
         type === "keydown" && key === "Tab" && input.control && !input.alt && !input.meta;
-      const commitsSwitching = type === "keyup" && key === "Control" && switching;
-      const cancelsSwitching = type === "keydown" && key === "Escape" && switching;
+      const commitsSwitching =
+        type === "keyup" && key === "Control" && entry.recentSessionSwitching;
+      const cancelsSwitching =
+        type === "keydown" && key === "Escape" && entry.recentSessionSwitching;
       if (!startsSwitching && !commitsSwitching && !cancelsSwitching) return;
 
       if (startsSwitching || cancelsSwitching) event.preventDefault();
@@ -317,8 +337,11 @@ function createBrowserViewRegistry({
         metaKey: !!input.meta,
         repeat: !!input.isAutoRepeat,
       });
-      if (startsSwitching) switching = true;
-      else switching = false;
+      if (startsSwitching) entry.recentSessionSwitching = true;
+      else entry.recentSessionSwitching = false;
+    });
+    wc.on("blur", () => {
+      cancelRecentSessionInput(entry, !isHostFocused());
     });
   }
 
@@ -383,6 +406,7 @@ function createBrowserViewRegistry({
       if (activeConversationId !== null) {
         const prev = entries.get(activeConversationId);
         if (prev) {
+          cancelRecentSessionInput(prev, true);
           try {
             detachFromHost(prev.view);
           } catch {
@@ -401,6 +425,7 @@ function createBrowserViewRegistry({
       if (activeConversationId !== null) {
         const prev = entries.get(activeConversationId);
         if (prev) {
+          cancelRecentSessionInput(prev, true);
           try {
             detachFromHost(prev.view);
           } catch {
@@ -420,6 +445,7 @@ function createBrowserViewRegistry({
     if (activeConversationId !== null) {
       const prev = entries.get(activeConversationId);
       if (prev) {
+        cancelRecentSessionInput(prev, true);
         try {
           detachFromHost(prev.view);
         } catch {
@@ -443,6 +469,7 @@ function createBrowserViewRegistry({
   function close(conversationId, reason) {
     const entry = entries.get(conversationId);
     if (!entry) return { ok: true, removed: false };
+    cancelRecentSessionInput(entry, true);
     if (activeConversationId === conversationId) {
       try {
         detachFromHost(entry.view);
