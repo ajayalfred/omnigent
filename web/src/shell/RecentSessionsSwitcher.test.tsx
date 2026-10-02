@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Conversation } from "@/hooks/useConversations";
@@ -11,6 +11,7 @@ vi.mock("@/lib/routing", () => ({ useNavigate: () => navigate }));
 afterEach(() => {
   cleanup();
   navigate.mockReset();
+  delete (window as unknown as Record<string, unknown>).omnigentDesktop;
 });
 
 function conversation(
@@ -139,6 +140,56 @@ describe("RecentSessionsSwitcher", () => {
 
     expect(navigate).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("switches from keyboard input forwarded by an embedded Browser page", () => {
+    let forwardInput: ((input: Record<string, unknown>) => void) | undefined;
+    const unsubscribe = vi.fn();
+    (window as unknown as Record<string, unknown>).omnigentDesktop = {
+      kind: "electron",
+      onBrowserRecentSessionInput: (callback: (input: Record<string, unknown>) => void) => {
+        forwardInput = callback;
+        return unsubscribe;
+      },
+    };
+    render(
+      <RecentSessionsSwitcher
+        conversations={[conversation("two", 2), conversation("one", 1)]}
+        activeSessionId="two"
+        enabled
+      />,
+    );
+
+    act(() => {
+      forwardInput?.({
+        type: "keydown",
+        key: "Tab",
+        code: "Tab",
+        ctrlKey: true,
+        shiftKey: false,
+        altKey: false,
+        metaKey: false,
+        repeat: false,
+      });
+    });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    act(() => {
+      forwardInput?.({
+        type: "keyup",
+        key: "Control",
+        code: "ControlLeft",
+        ctrlKey: false,
+        shiftKey: false,
+        altKey: false,
+        metaKey: false,
+        repeat: false,
+      });
+    });
+
+    expect(navigate).toHaveBeenCalledWith("/c/one");
+    cleanup();
+    expect(unsubscribe).toHaveBeenCalledOnce();
   });
 
   it("leaves Ctrl+Tab untouched outside Electron", () => {

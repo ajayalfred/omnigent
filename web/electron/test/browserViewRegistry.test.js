@@ -155,6 +155,74 @@ describe("browserViewRegistry — first-navigate activation signal", () => {
   });
 });
 
+describe("browserViewRegistry — recent-session input forwarding", () => {
+  it("forwards Ctrl+Tab, Control release, and Escape from an embedded page", () => {
+    const listeners = new Map();
+    const sent = [];
+    const webContents = {
+      loadURL() {},
+      close() {},
+      removeListener() {},
+      on(name, listener) {
+        listeners.set(name, listener);
+      },
+      setWindowOpenHandler() {},
+    };
+    const registry = createBrowserViewRegistry({
+      WebContentsViewCtor: () => ({ setBounds() {}, webContents }),
+      createBoundsController: createBrowserViewBoundsController,
+      attachToHost() {},
+      detachFromHost() {},
+      sendToRenderer: (channel, payload) => sent.push({ channel, payload }),
+    });
+    registry.openOrNavigate("conv_1", "https://example.com");
+    const forward = listeners.get("before-input-event");
+    assert.equal(typeof forward, "function");
+
+    const prevented = [];
+    const event = () => ({ preventDefault: () => prevented.push(true) });
+    forward(event(), { type: "keyDown", key: "Tab", code: "Tab", control: false });
+    forward(event(), {
+      type: "keyDown",
+      key: "Tab",
+      code: "Tab",
+      control: true,
+      shift: true,
+    });
+    forward(event(), {
+      type: "keyDown",
+      key: "Escape",
+      code: "Escape",
+      control: true,
+    });
+    forward(event(), {
+      type: "keyUp",
+      key: "Control",
+      code: "ControlLeft",
+      control: false,
+    });
+    forward(event(), { type: "keyDown", key: "Tab", code: "Tab", control: true });
+    forward(event(), {
+      type: "keyUp",
+      key: "Control",
+      code: "ControlLeft",
+      control: false,
+    });
+
+    const forwarded = sent.filter((item) => item.channel === "browser-recent-session-input");
+    assert.deepEqual(
+      forwarded.map((item) => [item.payload.type, item.payload.key, item.payload.shiftKey]),
+      [
+        ["keydown", "Tab", true],
+        ["keydown", "Escape", false],
+        ["keydown", "Tab", false],
+        ["keyup", "Control", false],
+      ],
+    );
+    assert.equal(prevented.length, 3, "claim Tab and Escape keydowns, not Control release");
+  });
+});
+
 // Build a registry whose stub views record every loadURL call, so we can
 // assert the agent-navigation allowlist blocks BEFORE loadURL is reached.
 function makeLoadTrackingRegistry() {

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { Conversation } from "@/hooks/useConversations";
+import { onBrowserRecentSessionInput } from "@/lib/nativeBridge";
 import { useNavigate } from "@/lib/routing";
 
 import { conversationDisplayLabel, getConversationAgentType } from "./sidebarNav";
@@ -142,6 +143,21 @@ export function RecentSessionsSwitcher({
     const onBlur = () => {
       if (openRef.current) cancel();
     };
+    const unsubscribeBrowserInput = onBrowserRecentSessionInput((input) => {
+      window.dispatchEvent(
+        new KeyboardEvent(input.type, {
+          key: input.key,
+          code: input.code,
+          ctrlKey: input.ctrlKey,
+          shiftKey: input.shiftKey,
+          altKey: input.altKey,
+          metaKey: input.metaKey,
+          repeat: input.repeat,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
 
     window.addEventListener("keydown", onKeyDown, true);
     window.addEventListener("keyup", onKeyUp, true);
@@ -150,6 +166,7 @@ export function RecentSessionsSwitcher({
       window.removeEventListener("keydown", onKeyDown, true);
       window.removeEventListener("keyup", onKeyUp, true);
       window.removeEventListener("blur", onBlur);
+      unsubscribeBrowserInput();
     };
   }, [cancel, commit, enabled, setSelection]);
 

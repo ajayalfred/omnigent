@@ -169,6 +169,7 @@ function createBrowserViewRegistry({
     installWindowOpenPolicy(entry);
     attachViewContextMenu(entry);
     attachAgentNavGuard(conversationId, entry);
+    attachRecentSessionInput(entry);
     return { ok: true, entry, created: true };
   }
 
@@ -280,6 +281,44 @@ function createBrowserViewRegistry({
     wc.on("will-frame-navigate", (event) => {
       // will-frame-navigate passes a single event whose `.url` is the target.
       guard(event, event && event.url);
+    });
+  }
+
+  // The embedded page owns a separate WebContents, so Ctrl+Tab never reaches
+  // the shell renderer's window listener. Forward only the recent-session
+  // gesture; all other page keyboard input remains local to the page.
+  function attachRecentSessionInput(entry) {
+    const wc = entry.view && entry.view.webContents;
+    if (!wc || typeof wc.on !== "function") return;
+    let switching = false;
+    wc.on("before-input-event", (event, input) => {
+      const type =
+        input && input.type === "keyDown"
+          ? "keydown"
+          : input && input.type === "keyUp"
+            ? "keyup"
+            : null;
+      if (type === null) return;
+      const key = input.key || "";
+      const startsSwitching =
+        type === "keydown" && key === "Tab" && input.control && !input.alt && !input.meta;
+      const commitsSwitching = type === "keyup" && key === "Control" && switching;
+      const cancelsSwitching = type === "keydown" && key === "Escape" && switching;
+      if (!startsSwitching && !commitsSwitching && !cancelsSwitching) return;
+
+      if (startsSwitching || cancelsSwitching) event.preventDefault();
+      sendToRenderer("browser-recent-session-input", {
+        type,
+        key,
+        code: input.code || key,
+        ctrlKey: !!input.control,
+        shiftKey: !!input.shift,
+        altKey: !!input.alt,
+        metaKey: !!input.meta,
+        repeat: !!input.isAutoRepeat,
+      });
+      if (startsSwitching) switching = true;
+      else switching = false;
     });
   }
 
