@@ -11,8 +11,10 @@ import { COMPOSER_SEND_SHORTCUT_STORAGE_KEY } from "@/lib/composerSendShortcutPr
 // The pinned-session row shows in both shells; only its chord differs (Alt in
 // the browser). Default the mock to browser (false); flip per-test for native.
 const isNativeShell = vi.fn(() => false);
+const isElectronShell = vi.fn(() => false);
 vi.mock("@/lib/nativeBridge", () => ({
   isNativeShell: () => isNativeShell(),
+  isElectronShell: () => isElectronShell(),
   // DialogContent (rendered here) reads isIOSShell to size modals for the iOS
   // keyboard; this suite exercises the browser path, so it's always false.
   isIOSShell: () => false,
@@ -20,6 +22,7 @@ vi.mock("@/lib/nativeBridge", () => ({
 
 beforeEach(() => {
   isNativeShell.mockReturnValue(false);
+  isElectronShell.mockReturnValue(false);
   localStorage.clear();
 });
 afterEach(() => {
@@ -150,5 +153,18 @@ describe("KeyboardShortcutsDialog", () => {
     expect(row).toBeTruthy();
     expect(within(row!).queryByText("Alt")).toBeNull();
     expect(within(row!).getByText("1…0")).toBeTruthy();
+  });
+
+  it("shows the recent-session switcher only in Electron", () => {
+    const { rerender } = render(<KeyboardShortcutsList />);
+    expect(screen.queryByText("Switch recent sessions")).toBeNull();
+
+    isNativeShell.mockReturnValue(true);
+    isElectronShell.mockReturnValue(true);
+    rerender(<KeyboardShortcutsList />);
+    expect(keysFor("Switch recent sessions")).toEqual(["Ctrl", "Tab"]);
+    expect(
+      screen.getByRole("heading", { name: "Navigation" }).closest("section")?.querySelector("li"),
+    ).toHaveTextContent("Switch recent sessions");
   });
 });

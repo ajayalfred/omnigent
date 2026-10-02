@@ -30,6 +30,7 @@ import { useOptimisticTitle } from "@/lib/optimisticTitles";
 import { derivePermissionLevel, isEditorLevel, isOwnerLevel } from "@/lib/permissionsApi";
 import {
   isAndroidShell,
+  isElectronShell,
   isIOSShell,
   isMacElectronShell,
   onNativeSidebarDrag,
@@ -128,6 +129,7 @@ import { PermissionsModal } from "@/components/PermissionsModal";
 import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
 import { ImportReviewGate } from "@/components/onboarding/HostImportReview";
 import { CommandPalette } from "./CommandPalette";
+import { RecentSessionsSwitcher } from "./RecentSessionsSwitcher";
 import { Toaster } from "@/components/ui/sonner";
 import { CloseShellDialog } from "./CloseShellDialog";
 import { ForkSessionDialog } from "./ForkSessionDialog";
@@ -2559,6 +2561,11 @@ export function AppShell() {
             onOpenChange={setCommandPaletteOpen}
             onToggleLeftSidebar={toggleLeftSidebar}
             onToggleRightSidebar={toggleRightPanel}
+          />
+          <RecentSessionsSwitcher
+            conversations={allConversations}
+            activeSessionId={serverConversationId ?? null}
+            enabled={isElectronShell()}
           />
           {/* Transient toasts (e.g. "session archived"). Mounted once here so
               any surface can fire one via showToast(). */}

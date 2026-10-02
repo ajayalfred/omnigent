@@ -33,7 +33,7 @@ import { useIsCoarsePointer } from "@/hooks/useIsCoarsePointer";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import { readSubmitWithModEnter } from "@/lib/composerSendShortcutPreferences";
 import { hasCommandModifier } from "@/lib/hotkeys";
-import { isNativeShell } from "@/lib/nativeBridge";
+import { isElectronShell, isNativeShell } from "@/lib/nativeBridge";
 
 // Custom event the dialog listens for, so non-adjacent surfaces (e.g. the
 // account menu) can open it without threading state through the tree.
@@ -136,6 +136,7 @@ function pinnedSessionShortcut(native: boolean): Shortcut {
 /** Shortcut groups for the current runtime and composer preference. */
 function shortcutGroupsFor(
   native: boolean,
+  electron: boolean,
   submitWithModEnter: boolean,
   preventsKeyboardSubmit: boolean,
 ): ShortcutGroup[] {
@@ -158,7 +159,14 @@ function shortcutGroupsFor(
       };
     }
     if (group.title === "Navigation") {
-      return { ...group, items: [...group.items, pinnedSessionShortcut(native)] };
+      return {
+        ...group,
+        items: [
+          ...(electron ? [{ label: "Switch recent sessions", keys: [CTRL_KEY, "Tab"] }] : []),
+          ...group.items,
+          pinnedSessionShortcut(native),
+        ],
+      };
     }
     return group;
   });
@@ -180,6 +188,7 @@ export function KeyboardShortcutsList({
   const preventsKeyboardSubmit = isMobileViewport || isCoarsePointer;
   const groups = shortcutGroupsFor(
     isNativeShell(),
+    isElectronShell(),
     readSubmitWithModEnter(),
     preventsKeyboardSubmit,
   );
