@@ -633,8 +633,10 @@ interface WorkspacePanelProps {
   width: number;
   /** Whether the panel is closed/collapsed (hides it from keyboard nav + assistive tech). */
   inert?: boolean;
-  /** Visual presence state; false runs the 300ms exit transition. */
+  /** Visual presence state; false collapses the panel. */
   open?: boolean;
+  /** Animate this open/close transition; false keeps width changes immediate. */
+  animateVisibility?: boolean;
   /** Suppress motion while the resize handle is actively dragging. */
   resizing?: boolean;
   /**
@@ -655,8 +657,7 @@ interface WorkspacePanelProps {
   showFilesPanel: boolean;
   /** Whether the GitHub tab is available (same on-disk-workspace gate as Files). */
   showGithubTab: boolean;
-  /** Whether the Browser tab is available — Electron shell only (hidden in a
-   *  plain web build, which has no embedded WebContentsView). */
+  /** Whether Browser soft tabs are available — hidden without a browser bridge. */
   showBrowserTab: boolean;
   /** Count of changed files, shown as the Changes tab badge. */
   changedCount: number;
@@ -753,6 +754,7 @@ function WorkspacePanelImpl({
   handleProps,
   inert,
   open = true,
+  animateVisibility = false,
   resizing = false,
   rightRailTab,
   tabListRef,
@@ -798,7 +800,10 @@ function WorkspacePanelImpl({
     activeBrowserRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [browsers.selected, rightRailTab]);
   const browserSelected =
-    rightRailTab === "browser" && selectedFilePath === null && selectedTerminalKey === null;
+    rightRailTab === "browser" &&
+    browsers.selected !== null &&
+    selectedFilePath === null &&
+    selectedTerminalKey === null;
   const addBrowser = () => {
     browsers.add();
     onRightRailTabChange("browser");
@@ -956,20 +961,16 @@ function WorkspacePanelImpl({
     : handleProps;
   const defaultTab = readDefaultWorkspaceTab();
   const tabOrder = [defaultTab, ...defaultWorkspaceTabs.filter((tab) => tab !== defaultTab)];
-  const visiblePermanentTabs: RightRailTab[] = [
-    ...tabOrder.filter((tab) => {
-      if (tab === "subagents") return true;
-      if (tab === "github") return pending || showGithubTab;
-      return pending || showFilesPanel;
-    }),
-    ...(showBrowserTab ? (["browser"] as const) : []),
-  ];
+  const visiblePermanentTabs: RightRailTab[] = tabOrder.filter((tab) => {
+    if (tab === "subagents") return true;
+    if (tab === "github") return pending || showGithubTab;
+    return pending || showFilesPanel;
+  });
   const shortcutFor = (tab: RightRailTab) => {
     const index = visiblePermanentTabs.indexOf(tab);
     return index === -1 ? undefined : String(index + 1);
   };
   const selectPermanentTab = (tab: RightRailTab) => {
-    if (tab === "browser") browsers.select(null);
     onRightRailTabChange(tab);
   };
   const handlePermanentTabNumber = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -985,6 +986,29 @@ function WorkspacePanelImpl({
     event.stopPropagation();
     selectPermanentTab(tab);
   };
+  const browserFallbackTab =
+    tabOrder.find((tab) => {
+      if (tab === "subagents") return true;
+      if (tab === "github") return showGithubTab;
+      return showFilesPanel;
+    }) ?? "subagents";
+  useEffect(() => {
+    if (
+      rightRailTab === "browser" &&
+      browsers.selected === null &&
+      selectedFilePath === null &&
+      selectedTerminalKey === null
+    ) {
+      onRightRailTabChange(browserFallbackTab);
+    }
+  }, [
+    rightRailTab,
+    browsers.selected,
+    selectedFilePath,
+    selectedTerminalKey,
+    browserFallbackTab,
+    onRightRailTabChange,
+  ]);
   const tabTriggers = {
     files: (pending || showFilesPanel) && (
       <WorkspaceTabTooltip key="files" label="Files" shortcut={shortcutFor("files")}>
@@ -1086,6 +1110,7 @@ function WorkspacePanelImpl({
       // against.
       data-maximized={maximized || undefined}
       data-state={open ? "open" : "closed"}
+      data-animate-visibility={animateVisibility || undefined}
       data-resizing={resizing || undefined}
       className={cn(
         "workspace-panel-motion @container/rail relative z-40 hidden md:flex md:min-h-0 md:flex-col md:overflow-hidden md:border-l md:border-border md:bg-card",
@@ -1144,7 +1169,7 @@ function WorkspacePanelImpl({
               pending
                 ? "__pending__"
                 : selectedFilePath !== null ||
-                    (browserSelected && browsers.selected !== null) ||
+                    browserSelected ||
                     sideChatSelected ||
                     (selectedTerminalKey !== null && openTerminals.includes(selectedTerminalKey))
                   ? "__tab__"
@@ -1155,21 +1180,6 @@ function WorkspacePanelImpl({
           >
             <TabsList variant="pill" className="gap-1" onKeyDown={handlePermanentTabNumber}>
               {tabOrder.map((tab) => tabTriggers[tab])}
-              {showBrowserTab && (
-                <WorkspaceTabTooltip label="Browser" shortcut={shortcutFor("browser")}>
-                  <TabsTrigger
-                    value="browser"
-                    aria-label="Browser"
-                    aria-keyshortcuts={shortcutFor("browser")}
-                    data-workspace-tab="browser"
-                    disabled={pending}
-                    className="size-6 shrink-0 p-0 hover:border-1 hover:border-muted rounded-md!"
-                  >
-                    <GlobeIcon />
-                    <span className="sr-only">Browser</span>
-                  </TabsTrigger>
-                </WorkspaceTabTooltip>
-              )}
             </TabsList>
           </Tabs>
           {/* 1px divider separating the static nav tabs from the open tabs.
@@ -1399,13 +1409,13 @@ function WorkspacePanelImpl({
                 !sideChatsStartedThisSession.has(sideChats.selected)
               }
             />
-          ) : rightRailTab === "browser" && showBrowserTab ? (
-            // Embedded browser (Electron only) — BrowserPane self-gates and
-            // measures this rail slot to position the native view over it.
+          ) : browserSelected && showBrowserTab ? (
+            // Browser soft tab — BrowserPane self-gates and measures this rail
+            // slot to position the native view over it.
             <BrowserPane
               key={browsers.viewId}
-              conversationId={browsers.viewId}
-              agentBrowser={browsers.selected === null}
+              conversationId={browsers.viewId!}
+              agentBrowser={browsers.agentBrowser}
               active={open}
               className="min-h-0 flex-1"
             />

@@ -7,6 +7,7 @@ import { useSessionAgent } from "@/hooks/useAgents";
 import type { SessionLiveness } from "@/hooks/useSessionLiveness";
 import type * as UseTerminalsModule from "@/hooks/useTerminals";
 import { useCreateTerminal, useTerminals } from "@/hooks/useTerminals";
+import { writeSessionWorkspaceState } from "@/lib/sessionWorkspaceState";
 import type { ChangedSort } from "./FlatFileList";
 import type { RightRailTab } from "./railTabs";
 import { writeDefaultWorkspaceTab } from "@/lib/workspaceTabPreferences";
@@ -96,6 +97,7 @@ function renderWorkspace(
     liveness?: SessionLiveness;
     pending?: boolean;
     open?: boolean;
+    animateVisibility?: boolean;
     resizing?: boolean;
     inert?: boolean;
   } = {},
@@ -112,6 +114,7 @@ function renderWorkspace(
         conversationId="conv_ws"
         width={360}
         open={overrides.open}
+        animateVisibility={overrides.animateVisibility}
         resizing={overrides.resizing}
         inert={overrides.inert}
         handleProps={{
@@ -172,14 +175,16 @@ describe("WorkspacePanel surface presentation", () => {
     expect(panel).not.toHaveClass("md:m-2", "md:rounded-lg", "md:shadow-lg");
     expect(panel).toHaveClass("workspace-panel-motion", "md:overflow-hidden");
     expect(panel).toHaveAttribute("data-state", "open");
+    expect(panel).not.toHaveAttribute("data-animate-visibility");
   });
 
-  it("marks the exiting panel closed and disables motion while resizing", () => {
-    renderWorkspace({ open: false, resizing: true, inert: true });
+  it("marks explicit visibility motion separately from resizing", () => {
+    renderWorkspace({ open: false, animateVisibility: true, resizing: true, inert: true });
 
     const panel = document.querySelector('aside[aria-label="Workspace"]');
     expect(panel).not.toBeNull();
     expect(panel).toHaveAttribute("data-state", "closed");
+    expect(panel).toHaveAttribute("data-animate-visibility", "true");
     expect(panel).toHaveAttribute("data-resizing", "true");
     expect(panel).toHaveAttribute("aria-hidden", "true");
   });
@@ -199,10 +204,10 @@ describe("WorkspacePanel surface presentation", () => {
   });
 
   it.each([
-    ["files", ["Files", "Changes", "GitHub", "Agents 1", "Browser"]],
-    ["changes", ["Changes", "Files", "GitHub", "Agents 1", "Browser"]],
-    ["github", ["GitHub", "Files", "Changes", "Agents 1", "Browser"]],
-    ["subagents", ["Agents 1", "Files", "Changes", "GitHub", "Browser"]],
+    ["files", ["Files", "Changes", "GitHub", "Agents 1"]],
+    ["changes", ["Changes", "Files", "GitHub", "Agents 1"]],
+    ["github", ["GitHub", "Files", "Changes", "Agents 1"]],
+    ["subagents", ["Agents 1", "Files", "Changes", "GitHub"]],
   ] as const)("places the %s default first without reordering the remaining tabs", (tab, order) => {
     writeDefaultWorkspaceTab(tab);
     renderWorkspace({ showGithubTab: true, showBrowserTab: true, rightRailTab: "files" });
@@ -237,15 +242,14 @@ describe("WorkspacePanel surface presentation", () => {
 
     expect(changes).toHaveAttribute("aria-keyshortcuts", "1");
     expect(screen.getByRole("tab", { name: "Files" })).toHaveAttribute("aria-keyshortcuts", "2");
-    expect(screen.getByRole("tab", { name: "Browser" })).toHaveAttribute("aria-keyshortcuts", "5");
+    expect(screen.getByRole("tab", { name: "Agents 1" })).toHaveAttribute("aria-keyshortcuts", "4");
 
     fireEvent.keyDown(changes, { key: "2" });
     fireEvent.keyDown(changes, { key: "5" });
     fireEvent.keyDown(changes, { key: "4", ctrlKey: true, altKey: true });
 
     expect(onRightRailTabChange).toHaveBeenNthCalledWith(1, "files");
-    expect(onRightRailTabChange).toHaveBeenNthCalledWith(2, "browser");
-    expect(onRightRailTabChange).toHaveBeenNthCalledWith(3, "subagents");
+    expect(onRightRailTabChange).toHaveBeenNthCalledWith(2, "subagents");
   });
 
   it("compresses numeric positions around unavailable permanent tabs", () => {
@@ -530,6 +534,28 @@ describe("WorkspacePanel shell tabs", () => {
     // The sentinel value must deselect every static trigger so a shell tab and
     // e.g. the Files tab never look selected at once.
     expect(screen.getByRole("tab", { name: /files/i })).toHaveAttribute("data-state", "inactive");
+  });
+
+  it("keeps an active shell selected when the last background browser closes", async () => {
+    writeSessionWorkspaceState("conv_ws", {
+      openBrowsers: ["browser-1"],
+      selectedBrowserId: "browser-1",
+    });
+    useTerminalsMock.mockReturnValue({ terminals: [term], isLoading: false, error: null });
+    const { onRightRailTabChange } = renderWorkspace({
+      showBrowserTab: true,
+      rightRailTab: "browser",
+      openTerminals: [termKey],
+      selectedTerminalKey: termKey,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Close Browser 1" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("tab", { name: "Browser 1" })).not.toBeInTheDocument(),
+    );
+    expect(onRightRailTabChange).not.toHaveBeenCalled();
+    expect(await screen.findByTestId("terminal-view-stub")).toHaveTextContent("terminal_zsh_s1");
   });
 });
 
@@ -895,22 +921,28 @@ describe("WorkspacePanel browser tab", () => {
       expect(screen.getAllByRole("tab", { name: /^Browser \d/ })).toHaveLength(1),
     );
     fireEvent.click(screen.getByRole("button", { name: "Close Browser 1" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("browser-pane-stub")).toHaveTextContent("conv_ws"),
-    );
+    await waitFor(() => expect(screen.queryByTestId("browser-pane-stub")).not.toBeInTheDocument());
+    expect(screen.getByTestId("files-panel-stub")).toBeInTheDocument();
   });
 
-  it("renders the Browser tab only when showBrowserTab is set", () => {
+  it("offers Browser only from the new-tab menu, without a permanent tab", async () => {
     renderWorkspace({ showBrowserTab: true });
-    expect(screen.getByRole("tab", { name: /browser/i })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /^Browser$/i })).toBeNull();
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Open new" }), { button: 0 });
+    expect(await screen.findByRole("menuitem", { name: "Browser" })).toBeInTheDocument();
   });
 
-  it("omits the Browser tab when showBrowserTab is false", () => {
+  it("omits Browser entirely when showBrowserTab is false", () => {
     renderWorkspace({ showBrowserTab: false });
     expect(screen.queryByRole("tab", { name: /browser/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open new" })).toBeNull();
   });
 
-  it("mounts the browser pane when the browser tab is selected", () => {
+  it("mounts the browser pane when a browser soft tab is selected", () => {
+    writeSessionWorkspaceState("conv_ws", {
+      openBrowsers: ["browser-1"],
+      selectedBrowserId: "browser-1",
+    });
     renderWorkspace({ showBrowserTab: true, rightRailTab: "browser" });
     // The content slot swaps to the embedded browser pane (stubbed here).
     expect(screen.getByTestId("browser-pane-stub")).toBeInTheDocument();
@@ -919,6 +951,10 @@ describe("WorkspacePanel browser tab", () => {
   });
 
   it("deactivates the browser pane while the persistent rail is closed", () => {
+    writeSessionWorkspaceState("conv_ws", {
+      openBrowsers: ["browser-1"],
+      selectedBrowserId: "browser-1",
+    });
     renderWorkspace({ showBrowserTab: true, rightRailTab: "browser", open: false, inert: true });
 
     expect(screen.getByTestId("browser-pane-stub")).toHaveAttribute("data-active", "false");
