@@ -69,26 +69,26 @@ def test_session_header_action_visibility(
     sessions_header = page.get_by_role("button", name="Sessions", exact=True)
     filter_sessions = page.get_by_role("button", name="Filter sessions")
     select_sessions = page.get_by_test_id("toggle-selection-mode")
-    select_wrapper = select_sessions.locator("..")
+    actions_wrapper = select_sessions.locator("..").locator("..")
 
     expect(filter_sessions).to_be_visible()
     expect(filter_sessions).to_have_css("opacity", "1")
-    expect(select_wrapper).to_have_css("opacity", "0")
+    expect(actions_wrapper).to_have_css("opacity", "0")
 
     filter_sessions.hover()
     expect(page.get_by_role("tooltip")).to_have_text("Filter sessions")
     page.mouse.move(800, 700)
-    expect(select_wrapper).to_have_css("opacity", "0")
+    expect(actions_wrapper).to_have_css("opacity", "0")
 
     sessions_header.hover()
-    expect(select_wrapper).to_have_css("opacity", "1")
+    expect(actions_wrapper).to_have_css("opacity", "1")
 
     page.mouse.move(800, 700)
-    expect(select_wrapper).to_have_css("opacity", "0")
+    expect(actions_wrapper).to_have_css("opacity", "0")
     sessions_header.focus()
     page.keyboard.press("Tab")
     expect(select_sessions).to_be_focused()
-    expect(select_wrapper).to_have_css("opacity", "1")
+    expect(actions_wrapper).to_have_css("opacity", "1")
 
     select_sessions.click()
     expect(page.get_by_role("button", name="Exit selection mode")).to_be_visible()
