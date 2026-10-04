@@ -68,6 +68,7 @@ def test_session_header_action_visibility(
     expect(_row_link(page, title)).to_be_visible()
     sessions_header = page.get_by_role("button", name="Sessions", exact=True)
     filter_sessions = page.get_by_role("button", name="Filter sessions")
+    new_session = page.get_by_test_id("sessions-new-session")
     select_sessions = page.get_by_test_id("toggle-selection-mode")
     actions_wrapper = select_sessions.locator("..").locator("..")
 
@@ -87,8 +88,10 @@ def test_session_header_action_visibility(
     expect(actions_wrapper).to_have_css("opacity", "0")
     sessions_header.focus()
     page.keyboard.press("Tab")
-    expect(select_sessions).to_be_focused()
+    expect(new_session).to_be_focused()
     expect(actions_wrapper).to_have_css("opacity", "1")
+    page.keyboard.press("Tab")
+    expect(select_sessions).to_be_focused()
 
     select_sessions.click()
     expect(page.get_by_role("button", name="Exit selection mode")).to_be_visible()
