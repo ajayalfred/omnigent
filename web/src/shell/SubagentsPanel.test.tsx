@@ -1395,8 +1395,8 @@ describe("SubagentsPanel", () => {
     // Each level steps its left gutter in by one unit so the rows read
     // as a tree, with each child connector aligned to its parent label.
     const pad = (id: string) => parseInt(childRow(container, id).style.paddingLeft, 10);
-    expect(pad("conv_grandchild") - pad("conv_child")).toBe(84);
-    expect(pad("conv_ggchild") - pad("conv_grandchild")).toBe(84);
+    expect(pad("conv_grandchild") - pad("conv_child")).toBe(64);
+    expect(pad("conv_ggchild") - pad("conv_grandchild")).toBe(90);
   });
 
   it("uses the circle-dot connector only for first-level leaf nodes", () => {

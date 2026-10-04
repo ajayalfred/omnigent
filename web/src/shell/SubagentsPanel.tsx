@@ -503,16 +503,18 @@ function MainRow({ rootSessionId, isActive }: { rootSessionId: string; isActive:
 const ROOT_GUIDE_CENTER_PX = 26;
 
 // The root harness avatar's center sits at 26px (10px row inset + 16px).
-// Center the direct-child connector on that guide. Deeper connectors align
-// their arrow glyph with the parent's label after accounting for the glyph's
-// inset inside its 24px connector container.
+// Center direct children on that guide. Align the nested connector container
+// with its parent's title container, then preserve that step at deeper levels.
 const ROW_BASE_PADDING_PX = 14;
-const ROW_DEPTH_STEP_PX = 84;
+const ROW_DEPTH_STEP_PX = 90;
+const SUBAGENT_ROW_OFFSET_PX = 26;
 const ROW_VERTICAL_PADDING_PX = 4;
 const ROW_CONNECTOR_SIZE_PX = 24;
 
 function rowPaddingLeft(depth: number): number {
-  return ROW_BASE_PADDING_PX + (depth - 1) * ROW_DEPTH_STEP_PX;
+  return (
+    ROW_BASE_PADDING_PX + (depth - 1) * ROW_DEPTH_STEP_PX - (depth > 1 ? SUBAGENT_ROW_OFFSET_PX : 0)
+  );
 }
 
 function SubagentRow({
