@@ -5849,7 +5849,7 @@ export function NewChatLandingScreen() {
         >
           {sandboxSelected && (
             <ComposerWorkspaceBar
-              className="h-[33px] px-2 py-1 md:h-[37px] md:px-3 md:py-1.5"
+              className="h-7 px-2 py-0.5 md:h-[37px] md:px-3 md:py-1.5"
               data-testid="new-chat-landing-workspace-controls"
             >
               {/* Sandbox repository chip — the sandbox counterpart of the
@@ -6060,7 +6060,7 @@ export function NewChatLandingScreen() {
           )}
           {!sandboxSelected && (
             <ComposerWorkspaceBar
-              className="h-[33px] px-2 py-1 md:h-[37px] md:px-3 md:py-1.5"
+              className="h-7 px-2 py-0.5 md:h-[37px] md:px-3 md:py-1.5"
               data-testid="new-chat-landing-workspace-controls"
             >
               {workspaceLoading && cachedWorkspace === null && (

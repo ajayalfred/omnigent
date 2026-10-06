@@ -263,7 +263,18 @@ describe("ChatHeader — open-sidebar toggle visibility", () => {
     // Closed: the toggle is the only sidebar affordance, so it must be
     // present. A regression here would hide the only way to reopen the
     // sidebar via pointer.
-    expect(screen.getByRole("button", { name: "Open sidebar" })).toBeInTheDocument();
+    const toggle = screen.getByRole("button", { name: "Open sidebar" });
+    expect(toggle).toBeInTheDocument();
+    expect(toggle.querySelector("svg")).toHaveClass("lucide-panel-left");
+  });
+
+  it("uses the menu icon for the mobile sidebar toggle", () => {
+    isMobileMock.mockReturnValue(true);
+    renderHeader({ sidebarOpen: false });
+
+    expect(screen.getByRole("button", { name: "Open sidebar" }).querySelector("svg")).toHaveClass(
+      "lucide-menu",
+    );
   });
 
   it("uses a back arrow and faded header surface for the mobile settings menu", () => {

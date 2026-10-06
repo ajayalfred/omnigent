@@ -8,6 +8,7 @@ import {
   GitForkIcon,
   InfoIcon,
   ListIcon,
+  MenuIcon,
   MessagesSquareIcon,
   PanelLeftIcon,
   PanelRightCloseIcon,
@@ -603,8 +604,10 @@ export function ChatHeader({
               >
                 {settingsMode ? (
                   <ArrowLeftIcon className="size-4 max-md:size-5" />
+                ) : isMobile ? (
+                  <MenuIcon className="size-5" />
                 ) : (
-                  <PanelLeftIcon className="size-4 max-md:size-5" />
+                  <PanelLeftIcon className="size-4" />
                 )}
               </Button>
             </TooltipTrigger>

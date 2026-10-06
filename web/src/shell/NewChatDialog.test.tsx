@@ -3267,7 +3267,7 @@ describe("NewChatLandingScreen", () => {
     expect(workspaceControls).toHaveClass(
       "mx-3",
       "-mb-px",
-      "h-[33px]",
+      "h-7",
       "md:h-[37px]",
       "min-w-0",
       "items-center",
@@ -3278,7 +3278,7 @@ describe("NewChatLandingScreen", () => {
       "border-b-0",
       "composer-workspace-surface",
       "px-2",
-      "py-1",
+      "py-0.5",
       "md:px-3",
       "md:py-1.5",
     );
