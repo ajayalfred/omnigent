@@ -138,14 +138,15 @@ import { isThemeMode, normalizeThemeMode, type ThemeMode } from "@/components/th
 import { useResolvedThemeMode } from "@/components/theme/useResolvedThemeMode";
 import {
   applyDesktopUiFontSize,
+  applyStoredUiFontSize,
   applyUiFontFamily,
   clampUiFontSizePx,
   readUiFontFamily,
   readUiFontSizePx,
   UI_FONT_FAMILY_DEFAULT,
-  UI_FONT_SIZE_DEFAULT,
   UI_FONT_SIZE_MAX,
   UI_FONT_SIZE_MIN,
+  UI_FONT_SIZE_MOBILE_QUERY,
   UI_FONT_SIZE_STEP,
   writeUiFontFamily,
   writeUiFontSizePx,
@@ -357,7 +358,7 @@ function Section({
 }) {
   return (
     <section>
-      <h1 className="text-2xl font-semibold">{title}</h1>
+      <h1 className="settings-page-title text-2xl font-semibold">{title}</h1>
       {description && (
         <p className={cn("mt-1 text-muted-foreground", descriptionClassName ?? "text-ui")}>
           {description}
@@ -849,7 +850,6 @@ function AppearanceSection() {
 
     writeHideUnconfiguredHarnesses(DEFAULT_HIDE_UNCONFIGURED_HARNESSES);
 
-    applyDesktopUiFontSize(UI_FONT_SIZE_DEFAULT);
     applyUiFontFamily(UI_FONT_FAMILY_DEFAULT);
 
     writeCodeFontSizePx(CODE_FONT_SIZE_DEFAULT);
@@ -882,6 +882,7 @@ function AppearanceSection() {
         // localStorage access errors are non-fatal.
       }
     }
+    applyStoredUiFontSize();
 
     // Remount the controls so they re-read the freshly-cleared defaults from
     // localStorage rather than keeping their stale seeded state.
@@ -908,7 +909,7 @@ function AppearanceSection() {
       // Note: web-theme is stored as plain string by next-themes, not JSON.
       const themeMode = imported.settings["web-theme"];
       if (themeMode && isThemeMode(themeMode)) setTheme(themeMode);
-      applyDesktopUiFontSize(readUiFontSizePx());
+      applyStoredUiFontSize();
       applyUiFontFamily(readUiFontFamily());
       applyThemePalette(readThemePalette());
       applyCustomTheme(readCustomTheme());
@@ -1750,8 +1751,8 @@ function DefaultBaseBranchControl() {
 /**
  * UI font size stepper. Maps one of the supported discrete px values into
  * typography tokens via --desktop-ui-font-size (see lib/uiFontPreferences.ts)
- * without resizing layout or icons. Desktop reads the value directly; mobile
- * scales its own base from it, so the setting applies on both surfaces.
+ * without resizing layout or icons. The chosen value applies directly on
+ * every viewport; only the unset default differs between desktop and mobile.
  */
 function UiFontSizeControl() {
   // `px` is the committed value: clamped, persisted, and applied to the UI.
@@ -1762,6 +1763,18 @@ function UiFontSizeControl() {
   // valid in-range size; blur/Enter clamps and re-syncs the text.
   const [px, setPx] = useState(() => readUiFontSizePx());
   const [draft, setDraft] = useState(() => String(px));
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia(UI_FONT_SIZE_MOBILE_QUERY);
+    const syncViewportDefault = () => {
+      const next = readUiFontSizePx();
+      setPx(next);
+      setDraft(String(next));
+    };
+    media.addEventListener("change", syncViewportDefault);
+    return () => media.removeEventListener("change", syncViewportDefault);
+  }, []);
 
   const commit = useCallback((next: number) => {
     const clamped = clampUiFontSizePx(next);

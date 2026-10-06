@@ -412,7 +412,7 @@ describe("SettingsPage", () => {
 
   it("renders the Appearance section and applies a theme on card click", () => {
     renderPage("/settings/appearance");
-    expect(screen.getByRole("heading", { name: "Appearance" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Appearance" })).toHaveClass("settings-page-title");
     // System is selected (theme = "system").
     expect(screen.getByTestId("theme-system")).toHaveAttribute("aria-checked", "true");
     fireEvent.click(screen.getByTestId("theme-dark"));
@@ -745,7 +745,7 @@ describe("SettingsPage", () => {
     expect((screen.getByTestId("ui-font-family-input") as HTMLInputElement).value).toBe("");
     expect((screen.getByTestId("code-font-size-input") as HTMLInputElement).value).toBe("13");
     expect((screen.getByTestId("code-font-family-input") as HTMLInputElement).value).toBe("");
-    expect(document.documentElement.style.getPropertyValue("--desktop-ui-font-size")).toBe("13px");
+    expect(document.documentElement.style.getPropertyValue("--desktop-ui-font-size")).toBe("");
     expect(document.documentElement.style.getPropertyValue("--ui-font-family")).toBe("");
     expect(localStorage.getItem("omnigent:ui-font-size")).toBeNull();
     expect(localStorage.getItem("omnigent:code-font-size")).toBeNull();

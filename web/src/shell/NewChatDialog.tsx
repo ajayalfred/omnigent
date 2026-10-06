@@ -5799,18 +5799,18 @@ export function NewChatLandingScreen() {
   );
 
   return (
-    // pb-24 lifts the centered hero and composer by 48px for optical balance.
+    // Desktop keeps the centered composition; mobile docks the composer.
     <div
       ref={setLandingSurface}
-      className="relative flex flex-1 items-center justify-center pb-24"
+      className="relative flex min-h-0 flex-1 items-stretch justify-center md:items-center md:pb-24"
       data-testid="new-chat-landing"
     >
       {/* Padding lives inside the 800px cap, so the composer surface reaches
           its shared 48rem column (800 − 32 = 768px) on desktop. px-4 (16px
           gutters) keeps the composer from feeling cramped against the
           viewport edges on phones. */}
-      <div className="flex w-full max-w-[800px] flex-col items-center px-4 pt-8 pb-16 md:select-none">
-        <div className="mb-6 flex w-full flex-col items-center justify-center gap-3.5">
+      <div className="flex min-h-0 w-full max-w-[800px] flex-col items-center px-4 pt-8 pb-[max(20px,env(safe-area-inset-bottom))] md:pb-16 md:select-none">
+        <div className="mb-6 flex w-full flex-1 flex-col items-center justify-center gap-3.5 md:flex-none">
           {selectedProject ? (
             // Landing inside a project: swap Otto's eyes for the project's
             // icon — the default pink folder, or a chosen emoji — and name the
@@ -5833,7 +5833,7 @@ export function NewChatLandingScreen() {
             <BrandLogo variant="eyes" className="h-14 w-auto shrink-0" />
           )}
           {selectedProject || heading ? (
-            <h1 className="min-w-0 break-words text-center text-[1.5em] md:text-[2.15em] font-normal tracking-[-0.05em] text-foreground line-clamp-2 sm:text-left">
+            <h1 className="min-w-0 break-words text-center text-[24px] md:text-[2.15em] font-normal tracking-[-0.05em] text-foreground line-clamp-2 sm:text-left">
               {selectedProject || heading}
             </h1>
           ) : null}
@@ -5845,7 +5845,10 @@ export function NewChatLandingScreen() {
           data-testid="new-chat-landing-composer-surface"
         >
           {sandboxSelected && (
-            <ComposerWorkspaceBar data-testid="new-chat-landing-workspace-controls">
+            <ComposerWorkspaceBar
+              className="h-[33px] px-2 py-1 md:h-[37px] md:px-3 md:py-1.5"
+              data-testid="new-chat-landing-workspace-controls"
+            >
               {/* Sandbox repository chip — the sandbox counterpart of the
               working-directory chip. There is no filesystem to browse
               before the sandbox exists, so the workspace is specified as
@@ -6053,7 +6056,10 @@ export function NewChatLandingScreen() {
             </ComposerWorkspaceBar>
           )}
           {!sandboxSelected && (
-            <ComposerWorkspaceBar data-testid="new-chat-landing-workspace-controls">
+            <ComposerWorkspaceBar
+              className="h-[33px] px-2 py-1 md:h-[37px] md:px-3 md:py-1.5"
+              data-testid="new-chat-landing-workspace-controls"
+            >
               {workspaceLoading && cachedWorkspace === null && (
                 <NewChatPickerLoading
                   label="Loading working directory"
