@@ -1035,6 +1035,10 @@ aside[aria-label="Workspace"][data-maximized] {
     font-size: 16px;
   }
 
+  [data-ios-native] .composer-input-text {
+    font-size: var(--text-ui);
+  }
+
   [data-ios-native] .chat-conversation-content,
   [data-android-native] .chat-conversation-content {
     /* header band + 1.5rem breathing room + OS safe area, sourced from the
