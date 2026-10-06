@@ -3263,7 +3263,7 @@ describe("NewChatLandingScreen", () => {
     expect(composerSurface.firstElementChild).toBe(workspaceControls);
     expect(workspaceControls).toContainElement(workspace);
     expect(workspaceControls.nextElementSibling).toBe(composer.closest("form"));
-    expect(composerSurface).toHaveClass("gap-0");
+    expect(composerSurface).toHaveClass("gap-0", "max-md:w-[calc(100%-1rem)]");
     expect(workspaceControls).toHaveClass(
       "mx-3",
       "-mb-px",
