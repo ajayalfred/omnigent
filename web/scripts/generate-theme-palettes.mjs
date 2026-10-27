@@ -35,6 +35,9 @@ function paletteRules(palette, mode) {
     .filter(([key]) => !backgroundKeys.has(key))
     .map(([key, cssName]) => [`--${cssName}`, tokens[key]]);
 
+  // Dark shell and sidebar surfaces use the shared treatment in index.css.
+  if (mode === "dark") return [rule(selector, declarations)];
+
   return [
     rule(selector, declarations),
     rule(`${selector} .app-shell`, [["background", tokens.shellBackground]]),
@@ -48,6 +51,9 @@ function customRules(mode) {
   const declarations = Object.entries(PALETTE_TOKEN_CSS_NAMES)
     .filter(([key]) => !backgroundKeys.has(key))
     .map(([, cssName]) => [`--${cssName}`, `var(--custom-${mode}-${cssName})`]);
+
+  // Dark shell and sidebar surfaces use the shared treatment in index.css.
+  if (mode === "dark") return [rule(selector, declarations)];
 
   return [
     rule(selector, declarations),

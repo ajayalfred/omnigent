@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" preserveAspectRatio="none">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="46%" r="56%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.26" />
+      <stop offset="54%" stop-color="white" stop-opacity="0.11" />
+      <stop offset="100%" stop-color="white" stop-opacity="0" />
+    </radialGradient>
+
+    <filter
+      id="dither"
+      x="0"
+      y="0"
+      width="100%"
+      height="100%"
+      color-interpolation-filters="sRGB"
+    >
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.85"
+        numOctaves="1"
+        seed="7"
+        stitchTiles="stitch"
+        result="noise"
+      />
+      <feColorMatrix
+        in="noise"
+        type="saturate"
+        values="0"
+        result="monochromeNoise"
+      />
+      <feComponentTransfer in="monochromeNoise" result="softNoise">
+        <feFuncR type="linear" slope="0.08" intercept="0.46" />
+        <feFuncG type="linear" slope="0.08" intercept="0.46" />
+        <feFuncB type="linear" slope="0.08" intercept="0.46" />
+      </feComponentTransfer>
+      <feBlend
+        in="SourceGraphic"
+        in2="softNoise"
+        mode="soft-light"
+        result="ditheredGlow"
+      />
+      <feComposite
+        in="ditheredGlow"
+        in2="SourceGraphic"
+        operator="in"
+      />
+    </filter>
+  </defs>
+
+  <rect
+    width="1000"
+    height="700"
+    fill="url(#glow)"
+    filter="url(#dither)"
+    opacity="0.36"
+  />
+</svg>

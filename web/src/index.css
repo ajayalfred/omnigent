@@ -262,6 +262,7 @@
 }
 
 .dark {
+  --app-shell-bg: #0e0b19;
   --ui-shadow-neutral-rgb: 0 0 0;
   --ui-shadow-warm-rgb: 0 0 0;
   --onboarding-wizard-background: #131315;
@@ -467,23 +468,25 @@
   background-color: rgba(255, 255, 255, 0.05);
 }
 
-/* --background is the opaque palette canvas; flatten tints over it to mask the stack. */
-.composer-workspace-surface {
-  background:
-    linear-gradient(
-      color-mix(in oklch, var(--muted) 70%, transparent),
-      color-mix(in oklch, var(--muted) 70%, transparent)
-    ),
-    var(--background);
+.composer-context-bar {
+  position: relative;
+  z-index: 20;
+  width: calc(100% - 24px);
+  margin-inline: 12px;
+  margin-bottom: -0.5px;
+  padding: 6px 8px;
+  background-color: rgb(255 255 255 / 3%);
+  border: 0.5px solid color-mix(in srgb, var(--foreground) 2%, transparent);
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
 }
 
 /* Preserve the translucent dark tray while matching the mock's single warm
-   surface across queued rows and workspace metadata in light themes. */
+   surface across queued rows in light themes. */
 .composer-queued-surface {
   background-color: color-mix(in oklab, var(--tray) 40%, transparent);
 }
 
-:root:not(.dark) .composer-workspace-surface,
 :root:not(.dark) .composer-queued-surface {
   background:
     linear-gradient(
@@ -598,12 +601,28 @@
   background: var(--background);
 }
 
+.dark .app-shell {
+  --sidebar-edge-border: color-mix(in srgb, var(--foreground) 4%, transparent);
+
+  background-color: var(--app-shell-bg) !important;
+  background-image: url("./assets/omnigent-center-glow.svg?v=2") !important;
+  background-position: right center;
+  background-repeat: no-repeat;
+  background-size: calc(100% - var(--app-sidebar-width, 0px)) 100%;
+}
+
+.dark .omnigent-native-sidebar-surface,
+.dark .omnigent-sidebar-panel {
+  background: linear-gradient(#0000 35%, #5c306c33), linear-gradient(135deg, #ffffff0a, #0000 60%);
+  background-position: 0 0;
+  background-size: auto;
+  background-clip: padding-box;
+}
+
 /* A desktop peek floats over the chat instead of pushing it aside, so its
- * gradient layers need an opaque base rather than the translucent card color. */
+ * light-mode gradient needs an opaque base rather than the translucent card color. */
 :root:not(.dark):not([data-theme]) .conversations-sidebar.is-peek,
-:root:not(.dark)[data-theme] .conversations-sidebar.is-peek,
-.dark:not([data-theme]) .conversations-sidebar.is-peek,
-.dark[data-theme] .conversations-sidebar.is-peek {
+:root:not(.dark)[data-theme] .conversations-sidebar.is-peek {
   background-color: var(--card-solid);
 }
 
@@ -613,21 +632,15 @@ html:not(.dark) .conversations-sidebar:not(.is-peek) {
   box-shadow: inset -8px 0 12px -8px rgb(0 0 0 / 5%);
 }
 .dark .conversations-sidebar {
-  border-right: 1px solid rgb(255 255 255 / 2%);
+  border-right: 1px solid var(--sidebar-edge-border);
   box-shadow: inset -8px 0 12px -8px rgb(0 0 0 / 5%);
 }
 
-/* Below md the sidebar is a full-screen overlay ON TOP of the chat, so it has
- * to be opaque — the rules above set `background` as a shorthand, which resets
- * background-color and would otherwise let the conversation show through the
- * translucent layers. Restores what Sidebar.tsx's max-md:bg-card-solid does on
- * desktop. Above md the sidebar pushes content aside instead of covering it,
- * so it keeps its translucent canvas there. */
+/* Below md the light-mode sidebar is a full-screen overlay ON TOP of the chat,
+ * so it keeps an opaque base. Dark mode uses the shared shell canvas instead. */
 @media (width < 48rem) {
   :root:not(.dark):not([data-theme]) .conversations-sidebar,
-  :root:not(.dark)[data-theme] .conversations-sidebar,
-  .dark:not([data-theme]) .conversations-sidebar,
-  .dark[data-theme] .conversations-sidebar {
+  :root:not(.dark)[data-theme] .conversations-sidebar {
     background-color: var(--card-solid);
   }
 }
@@ -757,13 +770,24 @@ aside[aria-label="Workspace"][data-maximized] {
 
 /* Popovers/menus — same glass treatment */
 .dark [data-slot="popover-content"],
-.dark [data-slot="select-content"],
-.dark [role="menu"],
-.dark [data-radix-popper-content-wrapper] > * {
+.dark [data-slot="select-content"]:not(.menu-surface),
+.dark [role="menu"]:not(.menu-surface),
+.dark [data-radix-popper-content-wrapper] > :not(.menu-surface) {
   /* -webkit- before unprefixed — see comment on the bg-card rule above. */
   -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
   backdrop-filter: blur(24px) saturate(150%) !important;
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dark .menu-surface {
+  background: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--app-shell-bg) 90%, white) 75%,
+    transparent
+  );
+  border: 1px solid rgb(255 255 255 / 8%);
+  -webkit-backdrop-filter: blur(24px) saturate(120%);
+  backdrop-filter: blur(24px) saturate(120%);
 }
 
 /* Native clearance uses window pixels, independent of rem and page zoom.

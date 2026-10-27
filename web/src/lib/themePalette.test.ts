@@ -179,6 +179,12 @@ describe("themePalette", () => {
     }
   });
 
+  it("uses one flat app-shell base across dark palettes", () => {
+    expect(new Set(PALETTES.map((palette) => palette.tokens.dark.shellBackground))).toEqual(
+      new Set(["#0e0b19"]),
+    );
+  });
+
   it.each(PALETTES)("keeps $label links readable on page and table surfaces", (palette) => {
     for (const mode of ["light", "dark"] as const) {
       const { link, background, cardSolid } = palette.tokens[mode];
@@ -195,7 +201,6 @@ describe("themePalette", () => {
     const solarized = PALETTES.find((palette) => palette.id === "solarized");
     expect(solarized?.tokens.light.background).toBe("#fdf6e3");
     expect(solarized?.tokens.dark.background).toBe("#002b36");
-    expect(solarized?.tokens.dark.shellBackground).toBe("#002b36");
   });
 
   it("keeps Solarized menu highlights distinct from popover surfaces", () => {

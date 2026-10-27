@@ -45,6 +45,7 @@ export type ThemeSelection = (typeof themeSelections)[number];
 
 /** Default palette: the Omni brand tokens already defined in `:root` / `.dark`. */
 export const DEFAULT_PALETTE: ThemePalette = "omni";
+const DARK_SHELL_BACKGROUND = "#0e0b19";
 
 /** A few representative colors used to render a palette's preview swatch. */
 export interface PaletteSwatch {
@@ -295,8 +296,7 @@ export const PALETTES: readonly PaletteMeta[] = [
         sidebarActiveForeground: "#f472b6",
         sidebarBackground:
           "linear-gradient(transparent 35%, rgba(92, 48, 108, 0.2)), linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent 60%)",
-        shellBackground:
-          "radial-gradient(rgba(100, 40, 180, 0.12), transparent 50%), radial-gradient(at 80% 20%, rgba(80, 30, 140, 0.08), transparent 45%), linear-gradient(145deg, #1a0e2d, #0e1418, #130e1b)",
+        shellBackground: DARK_SHELL_BACKGROUND,
       }),
     },
   },
@@ -355,8 +355,7 @@ export const PALETTES: readonly PaletteMeta[] = [
         ring: "#bd93f9",
         brandAccent: "#ff79c6",
         sidebar: "rgba(33, 34, 44, 0.8)",
-        shellBackground:
-          "radial-gradient(ellipse at 20% 40%, rgba(189, 147, 249, 0.14) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(255, 121, 198, 0.1) 0%, transparent 45%), linear-gradient(160deg, #2a2c3a 0%, #282a36 55%, #21222c 100%)",
+        shellBackground: DARK_SHELL_BACKGROUND,
       }),
     },
   },
@@ -414,7 +413,7 @@ export const PALETTES: readonly PaletteMeta[] = [
         ring: "#58a6ff",
         sidebar: "rgba(13, 17, 23, 0.75)",
         sidebarPrimaryForeground: "#0d1117",
-        shellBackground: "linear-gradient(160deg, #0d1117 0%, #0a0e14 100%)",
+        shellBackground: DARK_SHELL_BACKGROUND,
       }),
     },
   },
@@ -475,8 +474,7 @@ export const PALETTES: readonly PaletteMeta[] = [
         borderStrong: "#585b70",
         ring: "#cba6f7",
         sidebar: "rgba(24, 24, 37, 0.8)",
-        shellBackground:
-          "radial-gradient(ellipse at 20% 30%, rgba(203, 166, 247, 0.12) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(245, 194, 231, 0.08) 0%, transparent 45%), linear-gradient(160deg, #232336 0%, #1e1e2e 60%, #181825 100%)",
+        shellBackground: DARK_SHELL_BACKGROUND,
       }),
     },
   },
@@ -533,8 +531,7 @@ export const PALETTES: readonly PaletteMeta[] = [
         borderStrong: "#665c54",
         ring: "#fe8019",
         sidebar: "rgba(29, 32, 33, 0.8)",
-        shellBackground:
-          "radial-gradient(ellipse at 20% 30%, rgba(254, 128, 25, 0.1) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(250, 189, 47, 0.07) 0%, transparent 45%), linear-gradient(160deg, #32302f 0%, #282828 60%, #1d2021 100%)",
+        shellBackground: DARK_SHELL_BACKGROUND,
       }),
     },
   },
@@ -607,7 +604,7 @@ export const PALETTES: readonly PaletteMeta[] = [
         brandAccent: "#6c71c4",
         sidebar: "#073642",
         sidebarPrimaryForeground: "#fdf6e3",
-        shellBackground: "#002b36",
+        shellBackground: DARK_SHELL_BACKGROUND,
       }),
     },
   },
@@ -668,8 +665,7 @@ export const PALETTES: readonly PaletteMeta[] = [
         borderStrong: "#81a1c1",
         ring: "#88c0d0",
         sidebar: "rgba(46, 52, 64, 0.8)",
-        shellBackground:
-          "radial-gradient(ellipse at 20% 30%, rgba(136, 192, 208, 0.12) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(94, 129, 172, 0.08) 0%, transparent 45%), linear-gradient(160deg, #434c5e 0%, #2e3440 60%, #2e3440 100%)",
+        shellBackground: DARK_SHELL_BACKGROUND,
       }),
     },
   },

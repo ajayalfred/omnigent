@@ -1217,6 +1217,7 @@ describe("right-click context menu", () => {
     mockConversations([{ ...CONV, labels: { "omnigent.host_type": "managed" } }]);
     renderSidebar();
     fireEvent.contextMenu(screen.getByRole("link", { name: /My Session/ }));
+    expect(screen.getByRole("menu")).toHaveClass("menu-surface");
     const fork = screen.getByRole("menuitem", { name: "Fork" });
     expect(fork).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(fork);
