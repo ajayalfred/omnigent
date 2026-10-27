@@ -49,13 +49,13 @@
 
 .dark:not([data-theme]) {
   --background: #0e1013;
-  --foreground: oklch(0.965 0.003 240);
+  --foreground: #f5f5f4;
   --card: rgba(31, 39, 45, 0.6);
   --card-solid: #181f25;
-  --card-foreground: oklch(0.965 0.003 240);
+  --card-foreground: #f5f5f4;
   --tray: rgba(31, 39, 45, 0.6);
   --popover: rgba(26, 33, 41, 0.8);
-  --popover-foreground: oklch(0.965 0.003 240);
+  --popover-foreground: #f5f5f4;
   --primary: #e8ecf0;
   --link: #72b7f5;
   --primary-foreground: #11171c;
@@ -63,8 +63,8 @@
   --selection-foreground: #f9a8d4;
   --secondary: #1f272d;
   --secondary-foreground: #e8ecf0;
-  --muted: color-mix(in srgb, #92a4b3 15%, #262f36);
-  --muted-foreground: #92a4b3;
+  --muted: rgb(255 255 255 / 12%);
+  --muted-foreground: rgb(245 245 244 / 56%);
   --code-bg: oklch(0.38 0.005 240);
   --accent: #04355d;
   --accent-foreground: #4299e0;
@@ -75,7 +75,7 @@
   --ring: #e8ecf0;
   --brand-accent: #df3c85;
   --sidebar: rgba(17, 23, 28, 0.75);
-  --sidebar-foreground: oklch(0.965 0.003 240);
+  --sidebar-foreground: #f5f5f4;
   --sidebar-primary: oklch(0.64 0.22 254);
   --sidebar-primary-foreground: oklch(0.12 0.004 240);
   --sidebar-accent: oklch(0.245 0.005 240);

@@ -128,6 +128,12 @@ describe("ViewModeToggle", () => {
     expect(terminalSegment()).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("flips the active and inactive surface colors in dark mode", () => {
+    renderToggle(makeCtx({ view: "chat" }));
+    expect(screen.getByTestId("view-mode-toggle")).toHaveClass("bg-muted", "dark:bg-background");
+    expect(chatSegment()).toHaveClass("bg-background", "dark:bg-muted", "dark:hover:bg-muted");
+  });
+
   it("presses only the active segment in the terminal view", () => {
     renderToggle(makeCtx({ view: "terminal" }));
     expect(terminalSegment()).toHaveAttribute("aria-pressed", "true");
@@ -156,6 +162,7 @@ describe("ViewModeToggle", () => {
     fireEvent.pointerMove(chatSegment().parentElement!, { pointerType: "mouse" });
     const tooltip = await screen.findByRole("tooltip");
     expect(tooltip).toHaveTextContent("Chat view");
+    expect(tooltip).toHaveClass("menu-surface");
     expect(
       Array.from(tooltip.querySelectorAll('[data-slot="kbd"]'), (key) => key.textContent),
     ).toEqual([MOD_KEY, ALT_KEY, "\\"]);

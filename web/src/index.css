@@ -263,6 +263,7 @@
 
 .dark {
   --app-shell-bg: #0e0b19;
+  --foreground-tertiary: rgb(245 245 244 / 24%);
   --ui-shadow-neutral-rgb: 0 0 0;
   --ui-shadow-warm-rgb: 0 0 0;
   --onboarding-wizard-background: #131315;
@@ -634,6 +635,20 @@ html:not(.dark) .conversations-sidebar:not(.is-peek) {
 .dark .conversations-sidebar {
   border-right: 1px solid var(--sidebar-edge-border);
   box-shadow: inset -8px 0 12px -8px rgb(0 0 0 / 5%);
+}
+
+.dark .workspace-panel-motion {
+  --workspace-panel-border: rgb(255 255 255 / 8%);
+
+  border-left-color: var(--workspace-panel-border);
+}
+
+.dark .workspace-panel-motion .workspace-tab-strip {
+  border-bottom-color: var(--workspace-panel-border);
+}
+
+.dark .workspace-panel-motion .workspace-panel-header-divider {
+  border-color: var(--workspace-panel-border);
 }
 
 /* Below md the light-mode sidebar is a full-screen overlay ON TOP of the chat,
