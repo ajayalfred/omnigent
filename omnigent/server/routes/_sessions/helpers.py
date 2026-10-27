@@ -110,7 +110,7 @@ from omnigent.runtime import (
 from omnigent.runtime.agent_cache import AgentCache
 from omnigent.runtime.policies.engine import PolicyEngine
 from omnigent.runtime.tool_output import cap_tool_output
-from omnigent.server import presence, session_live_state, shutdown_state
+from omnigent.server import presence, session_live_state, session_pull_requests, shutdown_state
 from omnigent.server._elicitation_registry import (
     _harness_elicitation_owners,
     _harness_parked_elicitations,
@@ -4968,7 +4968,9 @@ def _publish_status(
     scheduled_run_outcome: Literal["auto", "failed"] = "auto",
     failure_origin: str | None = None,
     failure_context: object = None,
+    failure_intake: Mapping[str, str] | None = None,
     disconnect_evidence: Mapping[str, str] | None = None,
+    turn_completed: bool = False,
 ) -> None:
     """
     Publish a typed :class:`SessionStatusEvent` to the live stream and
@@ -5003,8 +5005,12 @@ def _publish_status(
         undifferentiated signature. Ignored for non-failed edges.
     :param failure_context: Untrusted optional native evidence, normalized at
         the failure-log boundary. Malformed values cannot reject the status edge.
+    :param failure_intake: Content-free observations from the failed-status intake path.
     :param disconnect_evidence: Flat string attributes describing the runner
         drop that caused a ``"failed"`` edge, logged on the failure row only.
+    :param turn_completed: Whether an ``"idle"`` edge reports a turn the harness
+        confirmed finished (e.g. claude-native's ``Stop`` hook), which clears a
+        sticky ``failed`` like a ``running`` edge would.
     """
     # ``failed`` is sticky against a trailing ``idle``. A turn error is
     # terminal — it must not be silently downgraded to ``idle`` by a
@@ -5017,8 +5023,14 @@ def _publish_status(
     # error persists exactly until the session does real work again. No
     # in-process flow performs a legitimate ``failed`` → ``idle``
     # transition (compaction failure publishes ``running`` → ``idle``, not
-    # ``failed``), so this is a safe, harness-agnostic invariant.
-    if status == "idle" and _session_status_cache.get(session_id) == "failed":
+    # ``failed``), so this is a safe, harness-agnostic invariant. A confirmed
+    # turn completion is the exception: it proves a later turn succeeded even
+    # when its ``running`` edge never arrived, so it clears ``failed`` too.
+    if (
+        status == "idle"
+        and not turn_completed
+        and _session_status_cache.get(session_id) == "failed"
+    ):
         # Session stays ``failed`` (terminal); the turn is over, so drop any
         # tracked in-flight response id rather than leaving it for the
         # snapshot to reopen a streaming bubble.
@@ -5028,6 +5040,10 @@ def _publish_status(
     _session_status_cache[session_id] = status
     if previous_status != status:
         _publish_child_status_to_parent(session_id, status)
+    if status == "idle" and previous_status in ("running", "waiting") and persist_live_status:
+        # A turn can open or merge a PR while nobody watches; refresh what the server
+        # stores. Stops and archives publish idle without persisting it, and skip this.
+        session_pull_requests.notify_turn_end(session_id)
     # Mirror the transition onto the conversation row (best-effort,
     # deduplicated, off-loop) so replicas that don't hold this session's
     # runner tunnel serve the same sidebar status.
@@ -5079,8 +5095,10 @@ def _publish_status(
                 code=failure_code,
                 previous_status=previous_status or "unknown",
                 response_id=response_id,
+                active_response_id_at_failure=_session_active_response_cache.get(session_id),
                 cached_background_task_count=_session_background_task_count_cache.get(session_id),
                 **failure_log_attributes(failure_context),
+                **(failure_intake or {}),
                 **(disconnect_evidence or {}),
             ),
         )
@@ -6111,6 +6129,69 @@ _RELAUNCH_MEMO_MAX = 512
 _detached_supersede_stops: set[asyncio.Task[None]] = set()
 
 
+# Ancestor rows read per ownership check; deeper chains leave the runner up.
+_OWNERSHIP_ANCESTOR_LOOKUP_LIMIT = 16
+
+
+async def _owns_host_runner(conv: Conversation, conversation_store: ConversationStore) -> bool:
+    """
+    Whether ``conv`` owns the host runner it is bound to.
+
+    A sub-agent created with ``parent_session_id`` keeps its ``host_id`` but
+    inherits its parent's ``runner_id`` (a stale binding is healed back to the
+    nearest live ancestor's), so it rides a runner an ancestor owns, and
+    stopping that runner would take the parent and every sibling down. A
+    sub-agent owns its runner only when a bounded walk reads every ancestor row
+    and none is bound to the same runner or left unbound on the same host; an
+    unverifiable chain fails closed.
+
+    :param conv: Session row whose ``host_id``/``runner_id`` binding is being
+        torn down.
+    :param conversation_store: Store used to read the ancestor rows.
+    :returns: ``True`` when stopping the runner on this session's behalf is safe.
+    """
+    if not conv.host_id or not conv.runner_id:
+        return False
+    visited = {conv.id}
+    ancestor_id = conv.parent_conversation_id
+    for _ in range(_OWNERSHIP_ANCESTOR_LOOKUP_LIMIT):
+        if ancestor_id is None:
+            return True
+        if ancestor_id in visited:
+            break
+        visited.add(ancestor_id)
+        try:
+            ancestor = await asyncio.to_thread(conversation_store.get_conversation, ancestor_id)
+        except Exception:  # noqa: BLE001
+            _logger.warning(
+                "Runner ownership check for %s could not read ancestor %s; leaving the runner up",
+                conv.id,
+                ancestor_id,
+                exc_info=True,
+                extra={"session_id": conv.id},
+            )
+            return False
+        # A missing or unbound ancestor row could hide the owner, so leave the runner up.
+        if (
+            ancestor is None
+            or ancestor.runner_id == conv.runner_id
+            or (ancestor.runner_id is None and ancestor.host_id == conv.host_id)
+        ):
+            return False
+        ancestor_id = ancestor.parent_conversation_id
+    if ancestor_id is None:
+        return True
+    _logger.warning(
+        "Runner ownership check for %s stopped at ancestor %s (cycle or more than %d "
+        "ancestors); leaving the runner up",
+        conv.id,
+        ancestor_id,
+        _OWNERSHIP_ANCESTOR_LOOKUP_LIMIT,
+        extra={"session_id": conv.id},
+    )
+    return False
+
+
 def _spawn_superseded_runner_stop(
     session_id: str,
     host_id: str,
@@ -6239,6 +6320,7 @@ async def _launch_runner_on_host_locked(
 
     await host_registry.admit_launch(host_conn, conv.id)
     superseded_runner_id = conv.runner_id
+    reap_superseded = await _owns_host_runner(conv, conversation_store)
     binding_token = secrets.token_urlsafe(32)
     new_runner_id = token_bound_runner_id(binding_token)
 
@@ -6262,10 +6344,10 @@ async def _launch_runner_on_host_locked(
         ),
     )
     with runner_log_scope(conv.id, new_runner_id):
-        if superseded_runner_id and conv.host_id is not None:
+        if reap_superseded and superseded_runner_id and conv.host_id is not None:
             # The old runner is unbound as of the replace above; reap it so it
-            # doesn't idle on the host forever (tunnel still authenticating,
-            # forwarder still tailing this session).
+            # doesn't idle on the host. A sub-agent's inherited runner stays up
+            # for the ancestor that owns it.
             _spawn_superseded_runner_stop(
                 conv.id, conv.host_id, superseded_runner_id, host_registry
             )
@@ -10584,16 +10666,17 @@ def _reject_server_reserved_label_seed(labels: dict[str, str] | None) -> None:
         )
     from omnigent.server.routes._host_worktree import WORKTREE_ROOT_LABEL_KEY
     from omnigent.stores.conversation_store import (
+        CREATED_BY_SESSION_LABEL_KEY,
         SCHEDULED_TASK_ORIGIN_LABEL_KEY,
         SIDE_CHAT_SOURCE_LABEL_KEY,
     )
 
-    if SCHEDULED_TASK_ORIGIN_LABEL_KEY in labels:
-        raise OmnigentError(
-            f"label {SCHEDULED_TASK_ORIGIN_LABEL_KEY!r} is server-internal "
-            "and cannot be set by clients",
-            code=ErrorCode.INVALID_INPUT,
-        )
+    for key in (SCHEDULED_TASK_ORIGIN_LABEL_KEY, CREATED_BY_SESSION_LABEL_KEY):
+        if key in labels:
+            raise OmnigentError(
+                f"label {key!r} is server-internal and cannot be set by clients",
+                code=ErrorCode.INVALID_INPUT,
+            )
 
     if SIDE_CHAT_SOURCE_LABEL_KEY in labels:
         raise OmnigentError(
