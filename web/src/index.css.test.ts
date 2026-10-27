@@ -210,7 +210,9 @@ describe("palette-aware surface composition", () => {
   it("keeps sidebar, menu, and card effects white over semantic bases", () => {
     expect(darkTokens).toContain("linear-gradient(transparent 35%, rgb(255 255 255 / 6%))");
     expect(darkTokens).toContain("linear-gradient(135deg, rgb(255 255 255 / 4%)");
-    expect(darkTokens).toContain("--composer-surface-bg: rgb(255 255 255 / 5%)");
+    expect(darkTokens).toContain(
+      "--composer-surface-bg: color-mix(in srgb, var(--app-shell-bg) 95%, white)",
+    );
     expect(darkTokens).toContain("--menu-surface-bg: var(--composer-surface-bg)");
     expect(darkTokens).toContain("color-mix(in srgb, var(--card) 95%, white)");
     expect(darkTokens).not.toContain("#5c306c");
@@ -221,8 +223,12 @@ describe("palette-aware surface composition", () => {
   });
 
   it("keeps the composer context bar mode-aware", () => {
-    expect(lightTokens).toContain("--composer-header-bg: rgb(0 0 0 / 6%)");
-    expect(darkTokens).toContain("--composer-header-bg: rgb(255 255 255 / 3%)");
+    expect(lightTokens).toContain(
+      "--composer-header-bg: color-mix(in srgb, var(--background) 94%, black)",
+    );
+    expect(darkTokens).toContain(
+      "--composer-header-bg: color-mix(in srgb, var(--app-shell-bg) 97%, white)",
+    );
     expect(composerContextRule).toContain("background-color: var(--composer-header-bg)");
   });
 
@@ -809,7 +815,7 @@ describe("index.css sidebar canvas", () => {
   )?.[0];
   const darkEdgeRule = cssSource.match(/\.dark \.conversations-sidebar \{[^}]*\}/)?.[0];
   const peekBackgroundRule = cssSource.match(
-    /:root:not\(\.dark\):not\(\[data-theme\]\) \.conversations-sidebar\.is-peek,[\s\S]*?:root:not\(\.dark\)\[data-theme\] \.conversations-sidebar\.is-peek \{[^}]*\}/,
+    /:root:not\(\[data-theme\]\) \.conversations-sidebar\.is-peek,[\s\S]*?:root\[data-theme\] \.conversations-sidebar\.is-peek \{[^}]*\}/,
   )?.[0];
 
   it("uses palette-owned bases in both modes", () => {
@@ -833,11 +839,27 @@ describe("index.css sidebar canvas", () => {
     expect(darkEdgeRule).toContain("border-right: 1px solid var(--sidebar-edge-border)");
   });
 
-  it("backs light floating peek cards with the opaque card color", () => {
-    expect(peekBackgroundRule).toContain(
-      ":root:not(.dark)[data-theme] .conversations-sidebar.is-peek",
-    );
+  it("backs floating peek cards in both modes with the opaque card color", () => {
+    expect(peekBackgroundRule).toContain(":root[data-theme] .conversations-sidebar.is-peek");
     expect(peekBackgroundRule).toContain("background-color: var(--card-solid)");
+  });
+});
+
+describe("index.css composer and menu surfaces", () => {
+  const darkTokens = cssSource.match(/\.dark \{\s*--app-shell-bg:[\s\S]*?\n\}/)?.[0];
+  const queuedSurface = cssSource.match(/\.composer-queued-surface \{[^}]*\}/)?.[0];
+
+  it("composes dark elevated surfaces over the opaque app-shell base", () => {
+    expect(darkTokens).toContain(
+      "--composer-surface-bg: color-mix(in srgb, var(--app-shell-bg) 95%, white)",
+    );
+    expect(darkTokens).toContain("--menu-surface-bg: var(--composer-surface-bg)");
+    expect(darkTokens).not.toContain("--composer-surface-bg: rgb(255 255 255 /");
+  });
+
+  it("uses one opaque surface token for queued rows and workspace metadata", () => {
+    expect(queuedSurface).toContain("background-color: var(--composer-header-bg)");
+    expect(queuedSurface).toContain("background-image: none");
   });
 });
 
@@ -1004,9 +1026,9 @@ describe("index.css shadow tokens", () => {
   });
 });
 
-/* Regression test for the "mobile light sidebar is see-through" bug.
- * Below md the sidebar overlays the chat, so the shared light canvas rule is
- * followed by an opaque fill. Dark mode has its own semantic sidebar base. */
+/* Regression test for the "mobile sidebar is see-through" bug.
+ * Below md the sidebar overlays the chat, so both canvas rules are followed
+ * by an opaque fill. */
 describe("index.css mobile sidebar opacity", () => {
   const mobileRule = cssSource.match(
     /@media \(width < 48rem\) \{[^@]*?\.conversations-sidebar[^{]*\{[^}]*background-color[^}]*\}/,
@@ -1017,13 +1039,17 @@ describe("index.css mobile sidebar opacity", () => {
     expect(mobileRule).toMatch(/background-color:\s*var\(--card-solid\)/);
   });
 
-  it("declares it after the shared light canvas rule so it wins the cascade", () => {
-    const palette = indexCssSource.indexOf(":root:not(.dark) .conversations-sidebar {");
+  it("declares it after both shared canvas rules so it wins the cascade", () => {
+    const lightPalette = indexCssSource.indexOf(":root:not(.dark) .conversations-sidebar {");
+    const darkPalette = indexCssSource.indexOf(".dark .omnigent-native-sidebar-surface,");
     const mobile = cssSource.indexOf(mobileRule!);
-    expect(palette).toBeGreaterThan(-1);
-    expect(mobile).toBeGreaterThan(palette);
-    expect(mobileRule).toContain(":root:not(.dark):not([data-theme]) .conversations-sidebar");
-    expect(mobileRule).toContain(":root:not(.dark)[data-theme] .conversations-sidebar");
+    expect(lightPalette).toBeGreaterThan(-1);
+    expect(darkPalette).toBeGreaterThan(-1);
+    expect(mobile).toBeGreaterThan(lightPalette);
+    expect(mobile).toBeGreaterThan(darkPalette);
+    expect(mobileRule).toContain(":root:not([data-theme]) .conversations-sidebar");
+    expect(mobileRule).toContain(":root[data-theme] .conversations-sidebar");
+    expect(mobileRule).not.toContain(":not(.dark)");
     expect(generatedPaletteCssSource).not.toContain(".conversations-sidebar {");
   });
 });
