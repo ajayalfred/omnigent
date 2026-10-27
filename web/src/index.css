@@ -264,6 +264,9 @@
 .dark {
   --app-shell-bg: #0e0b19;
   --foreground-tertiary: rgb(245 245 244 / 24%);
+  --segmented-active-bg: rgb(255 255 255 / 12%);
+  --segmented-inactive-bg: transparent;
+  --segmented-trough-bg: rgb(255 255 255 / 6%);
   --ui-shadow-neutral-rgb: 0 0 0;
   --ui-shadow-warm-rgb: 0 0 0;
   --onboarding-wizard-background: #131315;
@@ -589,6 +592,31 @@
   transition: none;
 }
 
+.session-header-glass {
+  isolation: isolate;
+}
+
+.session-header-glass::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 -12px;
+  background: linear-gradient(135deg, rgb(255 255 255 / 48%), rgb(255 255 255 / 22%));
+  -webkit-backdrop-filter: blur(28px) saturate(145%);
+  backdrop-filter: blur(28px) saturate(145%);
+  -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+  pointer-events: none;
+  content: "";
+}
+
+.dark .session-header-glass::before {
+  background: linear-gradient(
+    135deg,
+    rgb(255 255 255 / 6%),
+    color-mix(in srgb, var(--app-shell-bg) 42%, transparent) 60%
+  );
+}
+
 @starting-style {
   .workspace-panel-motion[data-state="open"][data-animate-visibility] {
     width: 0 !important;
@@ -660,23 +688,11 @@ html:not(.dark) .conversations-sidebar:not(.is-peek) {
   }
 }
 
-/* Fade scrolling content before it reaches the transparent header or composer.
- * Both ramps are 32px; the header's control band occupies the first 48px. */
+/* Let conversation content scroll behind the glass header, then fade it into
+ * the composer at the bottom. */
 .chat-scroll-fade {
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 48px,
-    black 80px,
-    black calc(100% - 32px),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 48px,
-    black 80px,
-    black calc(100% - 32px),
-    transparent 100%
-  );
+  mask-image: linear-gradient(to bottom, black calc(100% - 32px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 32px), transparent 100%);
 }
 
 /* A pinned plan already clears the header, so only fade into the composer. */
@@ -686,9 +702,7 @@ html:not(.dark) .conversations-sidebar:not(.is-peek) {
 }
 
 /* Snap target for the "Worked for" fold row (scrollIntoView block:"start").
- * Must land BELOW the fade above: the mask is fully opaque only from 80px,
- * so a smaller margin parks the row in the transparent band — scrolled
- * "to the top" yet invisible. Kept next to the fade so they can't desync. */
+ * Keep it below the overlaid glass header after programmatic navigation. */
 .turn-fold-row {
   scroll-margin-top: 88px;
 }
