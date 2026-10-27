@@ -634,7 +634,7 @@ def test_queued_rows_and_nested_workspace_share_the_tray_grid(
     assert_primitive_inset(columns[0]["status"]["x"] - box(strip)["x"])
     tray = page.get_by_test_id("composer-workspace-controls")
     assert tray.evaluate("el => parseFloat(getComputedStyle(el).borderTopWidth)") == pytest.approx(
-        1
+        0
     )
     assert box(strip)["x"] == pytest.approx(box(tray)["x"], abs=TOLERANCE)
     card = box(page.locator("[data-composer-card]"))
