@@ -170,10 +170,13 @@ describe("ViewModeToggle", () => {
     fireEvent.pointerMove(chatSegment().parentElement!, { pointerType: "mouse" });
     const tooltip = await screen.findByRole("tooltip");
     expect(tooltip).toHaveTextContent("Chat view");
-    expect(tooltip).toHaveClass("menu-surface");
-    expect(
-      Array.from(tooltip.querySelectorAll('[data-slot="kbd"]'), (key) => key.textContent),
-    ).toEqual([MOD_KEY, ALT_KEY, "\\"]);
+    expect(tooltip).toHaveClass("menu-surface", "bg-popover", "text-popover-foreground");
+    expect(tooltip).not.toHaveClass("bg-neutral-900", "text-white");
+    const keys = Array.from(tooltip.querySelectorAll<HTMLElement>('[data-slot="kbd"]'));
+    expect(keys.map((key) => key.textContent)).toEqual([MOD_KEY, ALT_KEY, "\\"]);
+    for (const key of keys) {
+      expect(key).toHaveClass("bg-muted", "text-muted-foreground");
+    }
   });
 
   it("keeps the Terminal segment usable and shows a spinner while the terminal is coming up", () => {

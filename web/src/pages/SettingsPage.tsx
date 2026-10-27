@@ -776,7 +776,10 @@ function ColorThemeControl() {
       title="Color theme"
       helper="Choose a preset, then tune it across light and dark mode."
     >
-      <div className="overflow-hidden rounded-xl border bg-card">
+      <div
+        data-testid="color-theme-editor"
+        className="overflow-hidden rounded-xl border bg-transparent"
+      >
         <div className="flex flex-col gap-3 border-b bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
             <div className="w-28 shrink-0 overflow-hidden rounded-lg shadow-sm">
@@ -828,15 +831,15 @@ function ColorThemeControl() {
         <div className="px-4">
           <ThemeColorPicker
             label="Accent"
-            value={editableTheme.accent}
+            value={isDark ? editableTheme.darkAccent : editableTheme.accent}
             testId="custom-theme-accent"
-            onChange={(accent) => updateCustomTheme({ accent, darkAccent: accent })}
+            onChange={(accent) => updateCustomTheme(isDark ? { darkAccent: accent } : { accent })}
           />
           <ThemeColorPicker
             label="Background tint"
-            value={editableTheme.tint}
+            value={isDark ? editableTheme.darkTint : editableTheme.tint}
             testId="custom-theme-tint"
-            onChange={(tint) => updateCustomTheme({ tint })}
+            onChange={(tint) => updateCustomTheme(isDark ? { darkTint: tint } : { tint })}
           />
           <div className="flex items-center justify-between gap-4 border-b border-border/70 py-4">
             <SettingsLabel label="Contrast" description="Separates text, borders, and surfaces." />

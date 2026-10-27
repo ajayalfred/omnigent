@@ -82,6 +82,8 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-cta-foreground: var(--primary-cta-foreground);
+  --color-primary-cta: var(--primary-cta);
   --color-link: var(--link);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
@@ -158,6 +160,9 @@
   --onboarding-modal-shadow: 0 24px 80px 8px #00000012;
   --composer-shadow: 0 0 12px -6px rgb(0 0 0 / 12%);
   --composer-shadow-focus: 0 0 20px -6px rgb(0 0 0 / 12%);
+  --composer-header-bg: rgb(0 0 0 / 6%);
+  --primary-cta: #11171c;
+  --primary-cta-foreground: #fff;
 
   /* User-controlled UI font family (see Appearance settings /
    * lib/uiFontPreferences.ts). Deliberately left unset here so the `html` rule's
@@ -262,16 +267,20 @@
 }
 
 .dark {
-  --app-shell-bg: #0e0b19;
+  --app-shell-bg: var(--background);
+  --session-composer-mask-bg: var(--app-shell-bg);
   --foreground-tertiary: rgb(245 245 244 / 24%);
-  --menu-surface-bg: color-mix(
-    in srgb,
-    color-mix(in srgb, var(--app-shell-bg) 90%, white) 75%,
-    transparent
-  );
+  --sidebar-surface-image:
+    linear-gradient(transparent 35%, rgb(255 255 255 / 6%)),
+    linear-gradient(135deg, rgb(255 255 255 / 4%), transparent 60%);
+  --composer-header-bg: rgb(255 255 255 / 3%);
+  --composer-surface-bg: rgb(255 255 255 / 5%);
+  --primary-cta: #e8ecf0;
+  --primary-cta-foreground: #11171c;
+  --menu-surface-bg: var(--composer-surface-bg);
   --card-surface-bg: color-mix(
     in srgb,
-    color-mix(in srgb, var(--app-shell-bg) 95%, white) 75%,
+    color-mix(in srgb, var(--card) 95%, white) 75%,
     transparent
   );
   --menu-surface-border: rgb(255 255 255 / 8%);
@@ -481,7 +490,7 @@
 .dark .composer-reference-surface {
   border-width: 0.5px;
   border-color: color(srgb 0.960784 0.960784 0.956863 / 0.04);
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--composer-surface-bg);
 }
 
 .composer-context-bar {
@@ -491,7 +500,7 @@
   margin-inline: 12px;
   margin-bottom: -0.5px;
   padding: 6px 8px;
-  background-color: rgb(255 255 255 / 3%);
+  background-color: var(--composer-header-bg);
   border: 0.5px solid color-mix(in srgb, var(--foreground) 2%, transparent);
   border-bottom: none;
   border-radius: 16px 16px 0 0;
@@ -639,14 +648,18 @@
 
 /* The transparent <main> shows the palette canvas through. */
 .app-shell {
-  background: var(--background);
+  background: var(--shell-background, var(--background));
+}
+
+:root:not(.dark) .conversations-sidebar {
+  background: var(--sidebar-background, var(--sidebar));
 }
 
 .dark .app-shell {
   --sidebar-edge-border: color-mix(in srgb, var(--foreground) 4%, transparent);
 
   background-color: var(--app-shell-bg) !important;
-  background-image: url("./assets/omnigent-center-glow.svg?v=2") !important;
+  background-image: url("./assets/omnigent-center-glow.svg") !important;
   background-position: right center;
   background-repeat: no-repeat;
   background-size: calc(100% - var(--app-sidebar-width, 0px)) 100%;
@@ -654,7 +667,8 @@
 
 .dark .omnigent-native-sidebar-surface,
 .dark .omnigent-sidebar-panel {
-  background: linear-gradient(#0000 35%, #5c306c33), linear-gradient(135deg, #ffffff0a, #0000 60%);
+  background-color: var(--sidebar);
+  background-image: var(--sidebar-surface-image);
   background-position: 0 0;
   background-size: auto;
   background-clip: padding-box;
@@ -740,11 +754,7 @@ html:not(.dark) .conversations-sidebar:not(.is-peek) {
   );
 }
 
-/* Elevated surfaces — frosted glass effect with backdrop blur.
- * Targets top-level cards only. A bg-card nested inside another bg-card
- * (e.g. FilesPanel inside the workspace panel, toolbars inside the
- * composer) is an interior fill, and re-decorating it with its own
- * border/shadow visually carves the parent card into pieces.
+/* Elevated surfaces — one palette-aware frosted treatment for every bg-card.
  * :not([data-collapsed]) skips closed rails/drawers/sidebars: they
  * collapse to w-0 with their utility borders removed, but this rule's
  * border+shadow would still paint them as a thin glowing strip along the
@@ -756,21 +766,14 @@ html:not(.dark) .conversations-sidebar:not(.is-peek) {
  * Both rails (Workspace, Conversations) are excluded — they paint their own
  * canvas layers above, not a glass card. */
 .dark
-  :is(.bg-card, [class*="md:bg-card"]):not(
-    :is(.bg-card, [class*="md:bg-card"]) :is(.bg-card, [class*="md:bg-card"])
-  ):not([data-collapsed]):not([aria-label="Workspace"]):not([aria-label="Conversations"]) {
+  :is(.bg-card, [class*="md:bg-card"]):not([data-collapsed]):not([aria-label="Workspace"]):not(
+    [aria-label="Conversations"]
+  ) {
   /* -webkit- must come BEFORE the unprefixed property: LightningCSS (vite
    * build) collapses the pair and keeps only the last declaration. */
   -webkit-backdrop-filter: var(--menu-surface-backdrop-filter) !important;
   backdrop-filter: var(--menu-surface-backdrop-filter) !important;
-  background: var(--card-surface-bg);
-  border: 1px solid var(--menu-surface-border);
-}
-
-.dark [data-slot="settings-group-card"] .bg-card {
-  -webkit-backdrop-filter: var(--menu-surface-backdrop-filter) !important;
-  backdrop-filter: var(--menu-surface-backdrop-filter) !important;
-  background: var(--card-surface-bg);
+  background-color: var(--card-surface-bg);
   border: 1px solid var(--menu-surface-border);
 }
 
@@ -797,6 +800,14 @@ html:not(.dark) .conversations-sidebar:not(.is-peek) {
   background: transparent !important;
 }
 
+/* The workspace rail owns the panel edge. Its full-height tab surfaces must
+ * not pick up a second border from the shared bg-card treatment. */
+.dark
+  aside[aria-label="Workspace"]
+  :is([data-workspace-panel-content] > *, [data-workspace-panel-surface]) {
+  border: none !important;
+}
+
 /* When maximized the workspace panel covers the full content area; use an
  * opaque background so the chat underneath doesn't bleed through. */
 aside[aria-label="Workspace"][data-maximized] {
@@ -819,8 +830,13 @@ aside[aria-label="Workspace"][data-maximized] {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+:root:not(.dark) .menu-surface {
+  background-color: #fff;
+  border: 1px solid rgb(0 0 0 / 8%);
+}
+
 .dark .menu-surface {
-  background: var(--menu-surface-bg);
+  background-color: var(--menu-surface-bg);
   border: 1px solid var(--menu-surface-border);
   -webkit-backdrop-filter: var(--menu-surface-backdrop-filter);
   backdrop-filter: var(--menu-surface-backdrop-filter);
@@ -2386,12 +2402,16 @@ html[data-electron-mac] .breadcrumb-folder {
 @media (min-width: 48rem) {
   :root:not(.dark)[data-theme="custom"][data-custom-translucent-sidebar]
     :is(.conversations-sidebar, aside[aria-label="Workspace"]:not([data-maximized])) {
-    background: var(--custom-light-sidebar);
+    background-color: var(--custom-light-sidebar);
+    background-image: none;
+    -webkit-backdrop-filter: blur(20px) saturate(1.12);
     backdrop-filter: blur(20px) saturate(1.12);
   }
   .dark[data-theme="custom"][data-custom-translucent-sidebar]
     :is(.conversations-sidebar, aside[aria-label="Workspace"]:not([data-maximized])) {
-    background: var(--custom-dark-sidebar);
+    background-color: var(--sidebar);
+    background-image: var(--sidebar-surface-image);
+    -webkit-backdrop-filter: blur(20px) saturate(1.12);
     backdrop-filter: blur(20px) saturate(1.12);
   }
   :root[data-theme="custom"][data-custom-translucent-sidebar]
