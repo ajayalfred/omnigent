@@ -150,8 +150,14 @@ def test_queued_strip_attaches_to_composer(
                         };
                     }"""
                 )
-                strip_padding_left = strip.evaluate(
-                    "element => parseFloat(getComputedStyle(element).paddingLeft)"
+                strip_insets = strip.evaluate(
+                    """element => {
+                        const style = getComputedStyle(element);
+                        return {
+                            left: parseFloat(style.paddingLeft),
+                            right: parseFloat(style.paddingRight),
+                        };
+                    }"""
                 )
                 drag_handle_box = (
                     strip.get_by_role("button", name="Reorder queued message")
@@ -217,7 +223,7 @@ def test_queued_strip_attaches_to_composer(
                 )
                 drag_handle_center = drag_handle_box["x"] + drag_handle_box["width"] / 2
                 workspace_icon_center = workspace_icon_box["x"] + workspace_icon_box["width"] / 2
-                compact_inset_delta = strip_padding_left - bar_insets["left"]
+                compact_inset_delta = strip_insets["left"] - bar_insets["left"]
                 assert drag_handle_center - workspace_icon_center == pytest.approx(
                     compact_inset_delta, abs=_EPSILON
                 ), (
@@ -225,13 +231,11 @@ def test_queued_strip_attaches_to_composer(
                     f"the queued drag column: drag={drag_handle_center:.1f}, "
                     f"workspace={workspace_icon_center:.1f}, inset={compact_inset_delta:.1f}"
                 )
-                assert (
-                    abs(
-                        strip_list_box["x"]
-                        + strip_list_box["width"]
-                        - (bar_box["x"] + bar_box["width"] - bar_insets["right"])
-                    )
-                    <= _EPSILON
+                strip_content_right = strip_list_box["x"] + strip_list_box["width"]
+                bar_content_right = bar_box["x"] + bar_box["width"] - bar_insets["right"]
+                compact_right_delta = strip_insets["right"] - bar_insets["right"]
+                assert bar_content_right - strip_content_right == pytest.approx(
+                    compact_right_delta, abs=_EPSILON
                 )
                 bar_bottom = bar_box["y"] + bar_box["height"]
                 covers_left = bar_box["x"] <= strip_box["x"] + _EPSILON
