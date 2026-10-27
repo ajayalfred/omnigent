@@ -185,6 +185,11 @@ describe("themePalette", () => {
     );
   });
 
+  it("uses white as the base for Omnigent dark form controls", () => {
+    const omni = PALETTES.find((palette) => palette.id === "omni")!;
+    expect(omni.tokens.dark.input).toBe("rgb(255 255 255 / 15%)");
+  });
+
   it.each(PALETTES)("keeps $label links readable on page and table surfaces", (palette) => {
     for (const mode of ["light", "dark"] as const) {
       const { link, background, cardSolid } = palette.tokens[mode];

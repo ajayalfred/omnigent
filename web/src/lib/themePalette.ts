@@ -282,7 +282,7 @@ export const PALETTES: readonly PaletteMeta[] = [
         border: "oklch(0.28 0.005 240)",
         borderStrong: "#a1a1aa",
         buttonBorder: "#d6d6d6",
-        input: "oklch(0.28 0.005 240)",
+        input: "rgb(255 255 255 / 15%)",
         ring: "#e8ecf0",
         brandAccent: "#df3c85",
         sidebar: "rgba(17, 23, 28, 0.75)",

@@ -71,7 +71,7 @@
   --border: oklch(0.28 0.005 240);
   --border-strong: #a1a1aa;
   --button-border: #d6d6d6;
-  --input: oklch(0.28 0.005 240);
+  --input: rgb(255 255 255 / 15%);
   --ring: #e8ecf0;
   --brand-accent: #df3c85;
   --sidebar: rgba(17, 23, 28, 0.75);

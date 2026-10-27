@@ -264,6 +264,18 @@
 .dark {
   --app-shell-bg: #0e0b19;
   --foreground-tertiary: rgb(245 245 244 / 24%);
+  --menu-surface-bg: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--app-shell-bg) 90%, white) 75%,
+    transparent
+  );
+  --card-surface-bg: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--app-shell-bg) 95%, white) 75%,
+    transparent
+  );
+  --menu-surface-border: rgb(255 255 255 / 8%);
+  --menu-surface-backdrop-filter: blur(24px) saturate(120%);
   --segmented-active-bg: rgb(255 255 255 / 12%);
   --segmented-inactive-bg: transparent;
   --segmented-trough-bg: rgb(255 255 255 / 6%);
@@ -749,18 +761,17 @@ html:not(.dark) .conversations-sidebar:not(.is-peek) {
   ):not([data-collapsed]):not([aria-label="Workspace"]):not([aria-label="Conversations"]) {
   /* -webkit- must come BEFORE the unprefixed property: LightningCSS (vite
    * build) collapses the pair and keeps only the last declaration. */
-  -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
-  backdrop-filter: blur(32px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-top-color: rgba(255, 255, 255, 0.14);
-  background-image: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.04) 0%,
-    rgba(255, 255, 255, 0) 60%
-  );
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.22),
-    0 1px 3px rgba(0, 0, 0, 0.16);
+  -webkit-backdrop-filter: var(--menu-surface-backdrop-filter) !important;
+  backdrop-filter: var(--menu-surface-backdrop-filter) !important;
+  background: var(--card-surface-bg);
+  border: 1px solid var(--menu-surface-border);
+}
+
+.dark [data-slot="settings-group-card"] .bg-card {
+  -webkit-backdrop-filter: var(--menu-surface-backdrop-filter) !important;
+  backdrop-filter: var(--menu-surface-backdrop-filter) !important;
+  background: var(--card-surface-bg);
+  border: 1px solid var(--menu-surface-border);
 }
 
 /* Side panels (FileViewer, TerminalsPanel, FilesPanelDrawer) manage their own
@@ -809,14 +820,10 @@ aside[aria-label="Workspace"][data-maximized] {
 }
 
 .dark .menu-surface {
-  background: color-mix(
-    in srgb,
-    color-mix(in srgb, var(--app-shell-bg) 90%, white) 75%,
-    transparent
-  );
-  border: 1px solid rgb(255 255 255 / 8%);
-  -webkit-backdrop-filter: blur(24px) saturate(120%);
-  backdrop-filter: blur(24px) saturate(120%);
+  background: var(--menu-surface-bg);
+  border: 1px solid var(--menu-surface-border);
+  -webkit-backdrop-filter: var(--menu-surface-backdrop-filter);
+  backdrop-filter: var(--menu-surface-backdrop-filter);
 }
 
 /* Native clearance uses window pixels, independent of rem and page zoom.
