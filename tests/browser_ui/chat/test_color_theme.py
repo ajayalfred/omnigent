@@ -357,6 +357,7 @@ def test_guided_custom_theme_applies_to_both_modes_and_persists(
     assert stored is not None
     assert stored["basePalette"] == "github"
     assert stored["accent"] == "#2563eb"
+    assert stored["darkAccent"] == "#58a6ff"
 
     translucent_sidebar = page.get_by_test_id("custom-theme-translucent-sidebar")
     translucent_sidebar.click()
@@ -384,7 +385,7 @@ def test_guided_custom_theme_applies_to_both_modes_and_persists(
 
     page.reload()
     expect(_color_theme_select(page)).to_contain_text("Custom")
-    expect(page.get_by_test_id("custom-theme-accent-trigger")).to_contain_text("#2563EB")
+    expect(page.get_by_test_id("custom-theme-accent-trigger")).to_contain_text("#58A6FF")
     assert _data_theme(page) == "custom"
 
     page.goto(f"{base_url}/c/{session_id}")

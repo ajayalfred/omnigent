@@ -506,6 +506,12 @@
   border-radius: 16px 16px 0 0;
 }
 
+.composer-context-bar.rounded-t-none {
+  border-top-width: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
 /* Queued rows and workspace metadata form one continuous composer surface. */
 .composer-queued-surface {
   background-color: var(--composer-header-bg);

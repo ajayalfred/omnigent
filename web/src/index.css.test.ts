@@ -180,6 +180,9 @@ describe("palette-aware surface composition", () => {
   )?.[0];
   const composerRule = indexCssSource.match(/\.dark \.composer-reference-surface \{[^}]*\}/)?.[0];
   const composerContextRule = indexCssSource.match(/\.composer-context-bar \{[^}]*\}/)?.[0];
+  const dockedComposerContextRule = indexCssSource.match(
+    /\.composer-context-bar\.rounded-t-none \{[^}]*\}/,
+  )?.[0];
   const lightMenuRule = indexCssSource.match(/:root:not\(\.dark\) \.menu-surface \{[^}]*\}/)?.[0];
   const menuRule = indexCssSource.match(/\.dark \.menu-surface \{[^}]*\}/)?.[0];
   const cardRule = extractBackdropFilterRules().find((rule) => rule.includes(".bg-card"));
@@ -230,6 +233,9 @@ describe("palette-aware surface composition", () => {
       "--composer-header-bg: color-mix(in srgb, var(--app-shell-bg) 97%, white)",
     );
     expect(composerContextRule).toContain("background-color: var(--composer-header-bg)");
+    expect(dockedComposerContextRule).toContain("border-top-width: 0");
+    expect(dockedComposerContextRule).toContain("border-top-left-radius: 0");
+    expect(dockedComposerContextRule).toContain("border-top-right-radius: 0");
   });
 
   it("keeps primary CTA colors independent from palette accents", () => {
