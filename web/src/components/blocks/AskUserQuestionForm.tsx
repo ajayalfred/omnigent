@@ -15,7 +15,12 @@ import type { ClaudeQuestion } from "@/lib/askUserQuestion";
 import { readSubmitWithModEnter } from "@/lib/composerSendShortcutPreferences";
 import { useIsEmbedded } from "@/lib/embedded";
 import { getEmbedRoot } from "@/lib/host";
-import { isFocusInDialogOrMenu } from "@/lib/hotkeys";
+import {
+  isEscapeOwnerOpen,
+  isFocusInDialogOrMenu,
+  isKeyOwningOverlayOpen,
+  isTextEntry,
+} from "@/lib/hotkeys";
 import { isImeCompositionKeyEvent } from "@/lib/ime";
 
 /**
@@ -78,31 +83,8 @@ const DIGIT_KEY = /^[1-9]$/;
 // Focused controls that keep Enter for their own activation or typing.
 const ENTER_OWNING_SELECTOR =
   "a[href], button, input, select, textarea, summary, [contenteditable]:not([contenteditable='false']), [role='button'], [role='link'], [role='checkbox'], [role='radio'], [role='switch'], [role='tab'], [role='menuitem'], [role='option'], [role='combobox'], [role='textbox'], [role='searchbox'], [role='slider']";
-// Open surfaces that keep the keys even while focus stays outside them: a fullscreen
-// table or diagram, and the composer's model/effort preview.
-const KEY_OWNING_OVERLAYS = "[aria-modal='true'], [data-fullscreen-overlay], [data-cycle-preview]";
 // Buttons and links inside the form, which Enter activates natively.
 const NATIVE_CLICK_SELECTOR = "button, a[href], [role='button'], [role='link']";
-// Input types that take a click or a choice rather than typed text.
-const NON_TEXT_INPUT_TYPES = new Set([
-  "button",
-  "checkbox",
-  "color",
-  "file",
-  "image",
-  "radio",
-  "range",
-  "reset",
-  "submit",
-]);
-
-/** Whether the target takes typed text, so digits and Escape belong to it. */
-function isTextEntry(target: HTMLElement): boolean {
-  if (target instanceof HTMLTextAreaElement) return true;
-  if (target instanceof HTMLInputElement) return !NON_TEXT_INPUT_TYPES.has(target.type);
-  return target.closest("[contenteditable]:not([contenteditable='false'])") !== null;
-}
-
 export function AskUserQuestionForm({
   questions,
   onSubmit,
@@ -261,7 +243,7 @@ export function AskUserQuestionForm({
       // Embedded, keys from the host page around the app aren't the app's.
       const embedRoot = getEmbedRoot();
       if (isEmbedded && (!embedRoot || !event.composedPath().includes(embedRoot))) return;
-      if (document.querySelector(KEY_OWNING_OVERLAYS) !== null) return;
+      if (isKeyOwningOverlayOpen()) return;
     }
     if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
     if (isImeCompositionKeyEvent({ nativeEvent: event }) || isFocusInDialogOrMenu()) return;
@@ -308,10 +290,12 @@ export function AskUserQuestionForm({
 
     if (event.key === "Escape") {
       // Outside the form Escape declines only from the page or an empty composer; open
-      // composer menus, drafts, and other focused controls keep it.
-      const ownedOutside = composer
-        ? suggestionsOpen || isDraftingTarget(target)
-        : target.closest(ENTER_OWNING_SELECTOR) !== null;
+      // panels, composer menus, drafts, and other focused controls keep it.
+      const ownedOutside =
+        isEscapeOwnerOpen() ||
+        (composer
+          ? suggestionsOpen || isDraftingTarget(target)
+          : target.closest(ENTER_OWNING_SELECTOR) !== null);
       if (!inside && ownedOutside) return;
       claim(onReject);
       return;
