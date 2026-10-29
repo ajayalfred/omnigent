@@ -188,8 +188,8 @@ export function useBrowserTabs(conversationId: string) {
     };
   }, [conversationId]);
 
-  /** Open a tab, optionally loading `url` into its view before the pane mounts. */
-  const add = (url?: string) => {
+  /** Open and select a tab, loading `url` into its view before the pane mounts; returns its id. */
+  const add = (url?: string): string => {
     selectionCountRef.current += 1;
     const selected = crypto.randomUUID();
     if (url) {
@@ -201,6 +201,7 @@ export function useBrowserTabs(conversationId: string) {
         .catch(() => undefined);
     }
     update((current) => ({ tabs: [...current.tabs, selected], selected }));
+    return selected;
   };
 
   /**
