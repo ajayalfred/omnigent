@@ -67,10 +67,6 @@ export function SidebarHeaderActions({
 }) {
   return (
     <div className="flex items-center gap-1" data-testid="sidebar-header-actions">
-      <SidebarSearchButton onOpenSearch={onOpenSearch} />
-      {showSettings && (
-        <SidebarSettingsButton onSettingsClick={onSettingsClick} className="max-md:hidden" />
-      )}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -103,6 +99,10 @@ export function SidebarHeaderActions({
           <span>{expanded ? "Collapse sidebar" : "Open sidebar"}</span>
         </TooltipContent>
       </Tooltip>
+      {showSettings && (
+        <SidebarSettingsButton onSettingsClick={onSettingsClick} className="max-md:hidden" />
+      )}
+      <SidebarSearchButton onOpenSearch={onOpenSearch} />
     </div>
   );
 }
