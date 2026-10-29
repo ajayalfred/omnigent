@@ -47,6 +47,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { KeyboardShortcutTooltip } from "@/components/KeyboardShortcut";
+import { APPROVE_KEYS, useApprovesOnHotkey } from "@/hooks/useApproveHotkey";
 import { useDescendantSession } from "@/hooks/useChildSessions";
 import {
   type AskUserQuestionPayload,
@@ -272,6 +274,10 @@ export function ApprovalCard({
   keyboardActive,
   className,
 }: ApprovalCardProps) {
+  // Only the prompt the chord would approve names it on its Approve button.
+  const approveKeys = useApprovesOnHotkey(elicitationId, status === "pending")
+    ? APPROVE_KEYS
+    : undefined;
   // In a side-chat pane this resolves to the child id, so the verdict targets
   // the child's elicitation rather than the main conversation's. null (the main
   // transcript) leaves submitApproval on its active-conversation default.
@@ -453,10 +459,12 @@ export function ApprovalCard({
     : undefined;
   const binaryButtons = (
     <div className="flex flex-wrap gap-2 pt-1">
-      <Button size="sm" onClick={() => submitBinary("accept")} componentId="approval.approve">
-        <CheckIcon className="mr-1 size-3.5" />
-        Approve
-      </Button>
+      <KeyboardShortcutTooltip label="Approve" keys={approveKeys}>
+        <Button size="sm" onClick={() => submitBinary("accept")} componentId="approval.approve">
+          <CheckIcon className="mr-1 size-3.5" />
+          Approve
+        </Button>
+      </KeyboardShortcutTooltip>
       {agyPermission?.alwaysAllowPattern && (
         <>
           <Button
@@ -579,14 +587,16 @@ export function ApprovalCard({
   );
   const codexCommandButtons = (
     <div className="flex flex-wrap items-center gap-2 pt-1" data-testid="codex-command-actions">
-      <Button
-        size="sm"
-        onClick={() => submitBinary("accept")}
-        componentId="approval.approve_command"
-      >
-        <CheckIcon className="mr-1 size-3.5" />
-        Approve
-      </Button>
+      <KeyboardShortcutTooltip label="Approve" keys={approveKeys}>
+        <Button
+          size="sm"
+          onClick={() => submitBinary("accept")}
+          componentId="approval.approve_command"
+        >
+          <CheckIcon className="mr-1 size-3.5" />
+          Approve
+        </Button>
+      </KeyboardShortcutTooltip>
       {execPolicyAmendment && (
         <Button
           size="sm"
@@ -872,6 +882,7 @@ export function ApprovalCard({
               onAcceptAuto={submitAllowAllEdits}
               onAccept={() => submitBinary("accept")}
               onReject={submitPlanRejection}
+              acceptKeys={approveKeys}
             />
           </>
         ) : isAskUserQuestion ? (
